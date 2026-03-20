@@ -30,6 +30,7 @@ pub mod zero_state;
 // new supervisory kernel components
 pub mod ai_ingestion_buffer;
 pub mod kernel;
+pub mod projection;
 pub mod setpoint_guard;
 pub mod simulation;
 

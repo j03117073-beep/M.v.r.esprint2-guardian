@@ -59,6 +59,7 @@ M.V.R.ESPRINT1 is a Rust-based deterministic assurance layer for energy grid ope
 - **tlbss_integrity_engine**: Grid physics and stability calculations
 - **regulatory_policy**: NERC/CIP compliance mappings
 - **audit_guardian**: Boundary condition monitoring
+- **projection**: Formal projection operator for constraint satisfaction
 - **sovereign_trace**: Immutable audit trail management
 - **sovereign_bus**: Unified communication channel
 - **universal_frontend**: Multi-language code ingestion
@@ -98,6 +99,15 @@ M.V.R.ESPRINT1 is a Rust-based deterministic assurance layer for energy grid ope
   - Signature verification
   - Hash chain integrity
   - Timestamp monotonicity
+
+### Projection Operator
+
+- **Purpose**: Formal operator Π: X → X_f mapping all states to feasible states
+- **Implementation**: DeterministicProjector using AuditGuardian for admissibility
+- **Constraints**: Ramp rate limits, capacity bounds, regulatory requirements
+- **Convergence**: Monotonic reduction of violation magnitude
+- **Properties**: Idempotent, deterministic, finite convergence
+- **Correction Signal**: Signed error reduction with magnitude tracking
   - PCR state consistency (when applicable)
 - **Performance**: < 1ms per record verification
 - **Output**: Pass/fail with detailed error reporting
