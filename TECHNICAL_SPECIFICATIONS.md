@@ -104,10 +104,12 @@ M.V.R.ESPRINT1 is a Rust-based deterministic assurance layer for energy grid ope
 
 - **Purpose**: TLBSS-compliant constraint evaluation and admissibility certification
 - **Architecture**: Pure functions for violation assessment, binary admissibility checking
-- **Components**: ConstraintEvaluator (diagnostic), AdmissibilityChecker (certification)
-- **Constraints**: Ramp rates, capacity limits, regulation headroom/footroom requirements
+- **Components**: ConstraintEvaluator (diagnostic), AdmissibilityChecker (certification), ConstraintBoundary (saturation detection)
+- **Constraints**: Ramp rates, capacity limits, regulation headroom/footroom requirements, time-coupled trajectories
 - **Principle**: Guardian certifies transitions, never modifies state
 - **Integration**: Parallel to TLBSS state evolution, provides admissibility filtering
+- **Saturation Detection**: Measures consecutive rejections to trigger L7 transitions
+- **Trajectory Evaluation**: Multi-interval admissibility checking with rolling horizon commitment
   - PCR state consistency (when applicable)
 - **Performance**: < 1ms per record verification
 - **Output**: Pass/fail with detailed error reporting
