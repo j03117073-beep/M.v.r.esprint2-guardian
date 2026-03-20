@@ -31,7 +31,7 @@ M.V.R.ESPRINT1 implements a comprehensive energy grid governance system with the
 - **Sovereign Kernel**: Core deterministic runtime with 1kHz control loops
 - **TLBSS Integrity Engine**: Tri-Entity Boundary Stability System for grid physics modeling
 - **Regulatory Policy Engine**: NERC/CIP/ISO compliance with legal citation tracking
-- **Projection Operator**: Formal constraint satisfaction with monotonic convergence
+- **Constraint System**: TLBSS-compliant admissibility checking and violation assessment
 - **Audit Guardian**: Non-agentic boundary certification and admissibility checking
 - **Adversarial Harness**: Security testing against state corruption and authority escalation
 - **Simulation Framework**: Deterministic testing with noise injection and latency simulation

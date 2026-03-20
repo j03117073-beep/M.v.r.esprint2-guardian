@@ -19,6 +19,7 @@
 
 pub mod adversarial_harness;
 pub mod compliance;
+pub mod constraint_system;
 pub mod drivers;
 pub mod failure_axis;
 pub mod fiel;
@@ -30,7 +31,6 @@ pub mod zero_state;
 // new supervisory kernel components
 pub mod ai_ingestion_buffer;
 pub mod kernel;
-pub mod projection;
 pub mod setpoint_guard;
 pub mod simulation;
 
