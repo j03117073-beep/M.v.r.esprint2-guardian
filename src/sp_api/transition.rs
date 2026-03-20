@@ -17,6 +17,22 @@
 
 #![deny(unsafe_code)]
 
+/// L7 Transition System - Market Emergency Actions Mapping
+///
+/// This module implements the broadcast mechanism for L7 transitions,
+/// which map directly to ERCOT/PJM regulatory emergency actions:
+///
+/// - ExternalTransitionSignal → Operator intervention / emergency action
+/// - Reason codes map to specific regulatory mechanisms:
+///   * 0x0001: RUC / operator commit (resource insufficiency)
+///   * 0x0002: Reserve deployment (responsive reserves)
+///   * 0x0003: Scarcity pricing activation (ORDC)
+///   * 0x0004: Emergency transmission ratings
+///   * 0x0005: Load shedding (UFLS, last resort)
+///
+/// All transitions are logged, time-limited, and externally approved
+/// per regulatory requirements. The kernel never acts directly.
+
 use std::net::{Ipv4Addr, SocketAddrV4, UdpSocket};
 
 use crate::failure_axis::{FailureAxis, SystemHalt};

@@ -46,6 +46,26 @@ M.V.R.ESPRINT1 serves as a deterministic governor for the energy sector, impleme
 - **Sovereign Bus**: Unified communication channel ensuring all interactions are auditable
 - **Sovereign Trace**: Complete cryptographic audit trail from input to output
 
+### Market Operations Mapping
+
+The system directly maps to ERCOT/PJM market operations:
+
+**Normal Operation (L1-L6)**: Functions as SCED constraint engine
+- Evaluates dispatch feasibility under ramp rates, capacity, reserves, transmission limits
+- Rejects inadmissible trajectories (equivalent to infeasible SCED dispatch)
+- Maintains feasible operating region
+
+**Saturation (L6)**: Detects scarcity conditions
+- No feasible dispatch exists under constraints
+- Triggers market scarcity pricing and operator alerts
+
+**L7 Transitions**: Maps to regulatory emergency actions
+- Resource commitment (RUC/operator commit)
+- Reserve deployment (responsive reserves)
+- Scarcity pricing activation (ORDC)
+- Emergency transmission ratings
+- Load shedding (last resort)
+
 ### Key Characteristics
 
 - **Deterministic**: Identical outputs for identical inputs across all executions

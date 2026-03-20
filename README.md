@@ -39,6 +39,53 @@ M.V.R.ESPRINT1 implements a comprehensive energy grid governance system with the
 - **Sovereign Bus**: Unified communication channel ensuring all interactions are auditable
 - **Sovereign Trace**: Complete cryptographic audit trail from input to output
 
+## Market Language Translation
+
+M.V.R.ESPRINT1's TLBSS geometry directly maps to ERCOT/PJM market operations:
+
+| TLBSS Component | Market Equivalent (ERCOT/PJM) |
+|-----------------|-------------------------------|
+| TLBSS state evolution | SCED dispatch / AGC / telemetry updates |
+| ConstraintEvaluator | SCED constraint engine (limits, ramps) |
+| AdmissibilityChecker | Feasibility / binding constraints |
+| Saturation (L6) | Infeasible dispatch / scarcity condition |
+| L7 Transition | Operator intervention / emergency action |
+| Transition telemetry | EMS logs / market audit trail |
+
+### SCED Mapping (Normal Operation — L1–L6)
+
+In both ERCOT & PJM, SCED runs every ~5 minutes to dispatch generation while enforcing ramp limits, capacity, reserves, and transmission constraints.
+
+M.V.R.ESPRINT1's system operates as:
+- `candidate_traj → evaluate → admissible ? accept : reject`
+
+This corresponds to SCED's feasible dispatch region.
+
+### Saturation = Scarcity Condition (L6)
+
+Saturation occurs when no feasible dispatch exists under constraints, triggering:
+- ERCOT: Scarcity pricing, operator alerts
+- PJM: Constraint binding at limits, reserve shortage signals
+
+### L7 Regulatory Actions
+
+L7 transitions map to existing, legally defined mechanisms:
+
+| L7 Condition | Real Action (ERCOT/PJM) | Code Event |
+|--------------|-------------------------|------------|
+| No feasible dispatch | RUC / operator commit | "RUC_REQUIRED" |
+| Reserve insufficiency | Reserve deployment | "RESERVE_DEPLOY" |
+| Persistent constraint binding | Scarcity pricing | "SCARCITY" |
+| Transmission infeasible | Emergency rating | "EMERGENCY_LIMIT" |
+| System collapse risk | Load shedding | "LOAD_SHED" |
+
+**Regulatory Compliance Rules:**
+- Kernel cannot act directly (no silent constraint relaxation)
+- All changes must be explicit, traceable, and reversible
+- External systems handle L7 transitions via `MarketOperator` trait
+
+This provides perfect auditability with no hidden violations, making the system extremely attractive for regulatory compliance.
+
 ## Positioning for Grid Deployment
 
 M.V.R.ESPRINT1 is designed as a **deterministic assurance and control overlay** that enhances existing grid infrastructure without operational risk. It focuses on risk reduction and evidence improvement for NERC compliance, not system replacement.

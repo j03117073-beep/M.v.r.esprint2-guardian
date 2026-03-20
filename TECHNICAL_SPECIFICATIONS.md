@@ -33,6 +33,14 @@ M.V.R.ESPRINT1 is a Rust-based deterministic assurance layer for energy grid ope
 
 **Target Environment**: Linux-based grid control systems, compatible with ICCP/PMU/SCADA telemetry.
 
+**Market Operations Integration**: Directly implements ERCOT/PJM SCED constraint evaluation and L7 emergency protocols:
+
+- **Normal Operation**: Functions as SCED feasibility checker (ramp limits, capacity, reserves, transmission)
+- **Saturation Detection**: Identifies scarcity conditions when no feasible dispatch exists
+- **L7 Transitions**: Maps to regulatory emergency actions (RUC, reserves, scarcity pricing, emergency ratings, load shedding)
+
+**Regulatory Advantage**: Unlike optimizing SCED systems that hide infeasibility in tolerances, M.V.R.ESPRINT1 refuses invalid states and provides perfect auditability with explicit escalation.
+
 ---
 
 ## Architecture

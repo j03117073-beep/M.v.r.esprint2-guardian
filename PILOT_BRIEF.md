@@ -12,6 +12,25 @@ M.V.R.ESPRINT1 provides a deterministic, cryptographically verifiable operationa
 
 **Key Differentiator**: Unlike traditional systems that optimize control, M.V.R.ESPRINT1 reconstructs every decision deterministically and proves it hasn't been altered.
 
+**Market Operations Mapping**: The system directly implements SCED constraint evaluation and L7 emergency escalation protocols used in ERCOT and PJM markets, providing perfect auditability for regulatory compliance.
+
+### TLBSS to Market Language Translation
+
+| Component | ERCOT/PJM Equivalent |
+|-----------|---------------------|
+| TLBSS state evolution | SCED dispatch / AGC updates |
+| ConstraintEvaluator | SCED constraint engine |
+| AdmissibilityChecker | Feasibility checker |
+| Saturation (L6) | Scarcity condition |
+| L7 Transition | Operator intervention |
+
+**L7 Emergency Actions**:
+- Resource Commitment → RUC/Operator Commit
+- Reserve Deployment → Responsive Reserves
+- Scarcity Pricing → ORDC Activation
+- Emergency Ratings → Transmission Override
+- Load Shedding → UFLS Procedures
+
 ---
 
 ## Problem Statement

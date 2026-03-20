@@ -17,6 +17,23 @@
 
 #![deny(unsafe_code)]
 
+/// TLBSS Constraint System - Market Operations Mapping
+///
+/// This module implements the SCED constraint engine equivalent for ERCOT/PJM:
+/// - ConstraintEvaluator = SCED constraint engine (limits, ramps)
+/// - AdmissibilityChecker = Feasibility / binding constraints
+/// - Saturation (L6) = Infeasible dispatch / scarcity condition
+/// - L7 Transition = Operator intervention / emergency action
+///
+/// The system evaluates dispatch feasibility under:
+/// - Ramp rate limits
+/// - Capacity constraints
+/// - Regulation headroom/footroom requirements
+/// - Time-coupled trajectory constraints
+///
+/// Unlike optimizing SCED systems, this provides binary admissibility
+/// checking with explicit violation reporting for perfect auditability.
+
 /// Power system state overlay (parallel to TLBSS, not inside it)
 #[derive(Clone, Debug, PartialEq)]
 pub struct PowerState {
