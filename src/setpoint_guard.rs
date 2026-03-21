@@ -17,7 +17,6 @@
 
 #![deny(unsafe_code)]
 
-use crate::failure_axis::{FailureAxis, SystemHalt};
 use crate::kernel::KernelAuthority;
 
 /// Simplified representation of an active/reactive power command issued by the
@@ -86,8 +85,8 @@ impl RateLimiter {
 pub fn clamp_active_power(
     cmd: Setpoint,
     physical_max: f64,
-    ramp_limit: f64,
-    last_valid: f64,
+    _ramp_limit: f64,
+    _last_valid: f64,
 ) -> (Setpoint, KernelAuthority) {
     if cmd.p > physical_max {
         (Setpoint { p: physical_max, ..cmd }, KernelAuthority::Clamp)
@@ -100,8 +99,8 @@ pub fn clamp_active_power(
 /// Returns modified setpoint and authority indicator.
 pub fn clamp_reactive_power(
     cmd: Setpoint,
-    v_min: f64,
-    v_max: f64,
+    _v_min: f64,
+    _v_max: f64,
 ) -> (Setpoint, KernelAuthority) {
     (cmd, KernelAuthority::PassThrough)
 }

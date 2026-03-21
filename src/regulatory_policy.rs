@@ -17,7 +17,6 @@
 
 #![deny(unsafe_code)]
 
-use crate::failure_axis::{FailureAxis, SystemHalt};
 use std::fmt;
 
 /// The 2026 Policy Violation Matrix
@@ -130,7 +129,7 @@ impl Default for PolicyConfig {
 }
 
 /// Check if frequency is in the mandatory ride-through zone
-pub fn is_in_ride_through_zone(freq: u8, config: &PolicyConfig) -> bool {
+pub fn is_in_ride_through_zone(freq: u8, _config: &PolicyConfig) -> bool {
     freq >= 58 && freq <= 62
 }
 

@@ -26,7 +26,6 @@
 //! - PRC-029-1 (Ride-Through): 3,000 ticks (3 sec @ 1 kHz)
 //! - CIP-012-2 (Crypto): 100 ticks (100 ms @ 1 kHz)
 
-use crate::regulatory_policy::GovernanceMode;
 use std::fmt;
 
 /// Recovery testament: Audit ticket proving state restoration was compliant

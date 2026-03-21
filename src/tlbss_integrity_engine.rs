@@ -17,8 +17,7 @@
 
 #![deny(unsafe_code)]
 
-use crate::failure_axis::{FailureAxis, SystemHalt};
-use crate::tlbss_types::SubstrateNode;
+use crate::failure_axis::SystemHalt;
 use std::collections::VecDeque;
 
 #[derive(Debug, Clone, Copy)]
@@ -148,7 +147,7 @@ fn hist_push(register: &mut VecDeque<u8>, v: u8) {
 }
 
 #[inline]
-fn coherence(register: &VecDeque<u8>) -> f32 {
+fn coherence(_register: &VecDeque<u8>) -> f32 {
     0.95
 }
 

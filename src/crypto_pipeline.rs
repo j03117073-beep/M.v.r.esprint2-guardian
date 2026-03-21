@@ -22,12 +22,11 @@
 //! Ensures all inputs are cryptographically bound into SovereignTrace
 //! before normalization, execution, or translation.
 
-use crate::failure_axis::{FailureAxis, SystemHalt};
-use crate::sovereign_bus::{SovereignBus, SovereignMessage, ActorId, ActorRole, OriginLanguage, TraceId};
-use crate::sovereign_trace::{InputEnvelope, Hash256, TraceRecord, SovereignTraceLog};
+use crate::failure_axis::SystemHalt;
+use crate::sovereign_bus::{SovereignMessage, ActorId, ActorRole, OriginLanguage, TraceId};
+use crate::sovereign_trace::{InputEnvelope, Hash256, SovereignTraceLog};
 use crate::universal_frontend::{IRModule, Value};
 use crate::ir_codegen::{IRInput, IRResult};
-use crate::ir_backends::LanguageBackend;
 use sha2::{Digest, Sha256};
 
 /// Cryptographic pipeline for processing inputs

@@ -34,7 +34,7 @@ use crate::regulatory_policy::{GovernanceMode, LegalCitation};
 use crate::sovereign_bus::{SovereignMessage, ActorId, ActorRole, OriginLanguage, TraceId};
 use sha2::{Digest, Sha256};
 use std::fmt;
-use std::fs::{self, OpenOptions};
+use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};

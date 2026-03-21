@@ -18,11 +18,8 @@
 #![deny(unsafe_code)]
 
 use crate::failure_axis::{FailureAxis, SystemHalt};
-use crate::tlbss_types::BinaryState;
 use sha2::{Digest, Sha256};
-use std::collections::VecDeque;
 use std::env;
-use tss_esapi::{Context, Tcti};
 
 /// Immutable per-tick audit record for the sovereign substrate.
 #[derive(Debug, Clone, PartialEq)]
@@ -196,7 +193,7 @@ impl SovereignKernel {
     pub fn execute_foreign(
         &mut self,
         ir_module: &crate::universal_frontend::IRModule,
-        input: crate::ir_codegen::IRInput,
+        _input: crate::ir_codegen::IRInput,
     ) -> Result<crate::ir_codegen::IRResult, SystemHalt> {
         // Generate Rust code from IR
         let _rust_code = crate::ir_codegen::generate_rust_code(ir_module);

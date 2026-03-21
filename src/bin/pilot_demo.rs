@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     env::set_var("SIGNER_MODE", "simulation");
 
     // Create kernel
-    let signer = signer_from_env()?;
+    let signer = signer_from_env(.map_err(|e| format!("{:?}", e))?;
     let config = SovereignKernelConfig { max_ticks: 100 };
     let mut kernel = SovereignKernel::new(signer, config);
 
@@ -40,7 +40,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let input = IRInput { /* placeholder */ };
 
         // Execute and capture record (in real impl, extract from kernel)
-        let _result = kernel.execute_foreign(&ir_module, input)?;
+        let _result = kernel.execute_foreign(&ir_module, input.map_err(|e| format!("{:?}", e))?;
 
         // For demo, create a sample record (in practice, kernel would expose records)
         let record = AttestationRecord {
@@ -54,9 +54,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Save to file
-    let mut file = File::create("pilot_attestation_log.json")?;
+    let mut file = File::create("pilot_attestation_log.json".map_err(|e| format!("{:?}", e))?;
     for record in &records {
-        writeln!(file, "{}", serde_json::to_string(record)?)?;
+        writeln!(file, "{}", serde_json::to_string(record)?.map_err(|e| format!("{:?}", e))?;
     }
 
     println!("Generated pilot attestation log with {} records", records.len());
@@ -64,7 +64,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Run verifier
     let verifier_output = std::process::Command::new("cargo")
         .args(&["run", "--bin", "verifier", "pilot_attestation_log.json"])
-        .output()?;
+        .output(.map_err(|e| format!("{:?}", e))?;
 
     if verifier_output.status.success() {
         println!("Verification successful!");

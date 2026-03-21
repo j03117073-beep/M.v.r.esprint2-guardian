@@ -17,9 +17,7 @@
 
 #![deny(unsafe_code)]
 
-use crate::failure_axis::{FailureAxis, SystemHalt};
-use std::fs;
-use std::io::Write;
+use crate::failure_axis::SystemHalt;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 

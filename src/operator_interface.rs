@@ -20,12 +20,10 @@
 use crate::failure_axis::{FailureAxis, SystemHalt};
 use crate::grid_code_templates::{select_template, template_to_env_file};
 use crate::simulation_harness_core::run_all as run_shadow_harness;
-use ed25519_dalek::{Signature, Verifier, VerifyingKey};
-use sha2::{Digest, Sha256};
+use sha2::Digest;
 use std::fs;
 use std::io::Write;
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::path::Path;
 
 #[derive(Debug, Clone)]
 pub struct DashboardSnapshot {
@@ -109,7 +107,7 @@ pub fn write_dashboard_html(artifacts_dir: &str, out_path: &str) -> Result<(), S
     Ok(())
 }
 
-pub fn diagnose_query(query: &str, artifacts_dir: &str) -> Result<String, SystemHalt> {
+pub fn diagnose_query(query: &str, _artifacts_dir: &str) -> Result<String, SystemHalt> {
     match query.to_lowercase().as_str() {
         "compliance" => Ok("All mandates compliant".to_string()),
         "thermal" => Ok("TPL-008-1 nominal".to_string()),

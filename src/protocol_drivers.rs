@@ -17,10 +17,9 @@
 
 #![deny(unsafe_code)]
 
-use crate::failure_axis::{FailureAxis, SystemHalt};
+use crate::failure_axis::SystemHalt;
 use crate::interface_discovery::{DiscoveredEndpoint, ProtocolKind};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeSet;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

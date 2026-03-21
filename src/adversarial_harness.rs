@@ -18,9 +18,7 @@
 #![deny(unsafe_code)]
 
 use crate::failure_axis::{FailureAxis, SystemHalt};
-use crate::tlbss_types::{BinaryState, SubstrateNode};
-use std::fs::OpenOptions;
-use std::io::Write;
+use crate::tlbss_types::SubstrateNode;
 
 // ---------------------------------------------------------
 // TickState: Immutable trace snapshot for audit

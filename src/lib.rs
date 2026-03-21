@@ -20,6 +20,7 @@
 pub mod adversarial_harness;
 pub mod compliance;
 pub mod constraint_system;
+pub mod demo_pipeline;
 pub mod drivers;
 pub mod failure_axis;
 pub mod fiel;

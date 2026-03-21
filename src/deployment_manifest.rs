@@ -26,7 +26,6 @@
 //! 2. All 2026 NERC/FERC citations are hard-coded
 //! 3. Kernel boot validates integrity before allowing execution
 
-use std::sync::OnceLock;
 
 /// Production manifest version - must match JSON
 const MANIFEST_VERSION: &str = "1.0.0-PROD";

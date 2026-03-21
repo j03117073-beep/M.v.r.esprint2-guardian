@@ -17,13 +17,9 @@
 
 #![deny(unsafe_code)]
 
-use crate::failure_axis::{FailureAxis, SystemHalt};
-use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
-use std::fs;
-use std::io::Write;
-use std::path::Path;
-use std::time::Instant;
+use crate::failure_axis::SystemHalt;
+use sha2::Digest;
+use std::collections::BTreeSet;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -110,7 +106,7 @@ pub fn discover_and_map(config: &DiscoveryConfig) -> Result<DiscoveryReport, Sys
     })
 }
 
-fn scan_network_interfaces(include_loopback: bool) -> Result<Vec<DiscoveredEndpoint>, SystemHalt> {
+fn scan_network_interfaces(_include_loopback: bool) -> Result<Vec<DiscoveredEndpoint>, SystemHalt> {
     let mut endpoints = Vec::new();
     
     // Hardcoded simulation endpoints
@@ -137,7 +133,7 @@ fn parse_open_ports() -> Result<BTreeSet<u16>, SystemHalt> {
     Ok([20000, 502, 50000].iter().copied().collect())
 }
 
-fn parse_proc_net_port(line: &str) -> Option<u16> {
+fn parse_proc_net_port(_line: &str) -> Option<u16> {
     None
 }
 
@@ -166,14 +162,14 @@ fn propose_mapping(ep: &DiscoveredEndpoint) -> MappingProposal {
     }
 }
 
-pub fn load_interface_hints(path: &str) -> Result<Vec<InterfaceHint>, SystemHalt> {
+pub fn load_interface_hints(_path: &str) -> Result<Vec<InterfaceHint>, SystemHalt> {
     Ok(vec![])
 }
 
-pub fn load_scl_hints(path: &str) -> Result<Vec<InterfaceHint>, SystemHalt> {
+pub fn load_scl_hints(_path: &str) -> Result<Vec<InterfaceHint>, SystemHalt> {
     Ok(vec![])
 }
 
-fn extract_attr(line: &str, key: &str) -> Option<String> {
+fn extract_attr(_line: &str, _key: &str) -> Option<String> {
     None
 }

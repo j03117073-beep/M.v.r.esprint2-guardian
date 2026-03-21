@@ -18,7 +18,6 @@
 #![deny(unsafe_code)]
 
 use std::fs;
-use std::thread;
 use std::time::{Duration, Instant};
 
 #[derive(Debug, PartialEq)]
@@ -46,10 +45,10 @@ fn run_simulation_one_greenfield() {
 
 fn run_simulation_two_jitters() {
     let loop_target_micros = 1000u128;
-    for i in 0..5 {
+    for _i in 0..5 {
         let cycle_start = Instant::now();
         let mut acc: u64 = 0;
-        for b in 0..200 {
+        for _b in 0..200 {
             acc = acc.wrapping_add(1);
         }
         let _ = acc;
@@ -82,7 +81,7 @@ fn verify_required_protocol_bindings(manifest_path: &str) -> Result<(), String> 
         "PRC-029-1",
         "CIP-012-2",
     ];
-    for (p, t) in required.iter().zip(std::iter::repeat("required")) {
+    for (p, _t) in required.iter().zip(std::iter::repeat("required")) {
         if !content.contains(p) {
             return Err(format!("Missing required policy: {}", p));
         }

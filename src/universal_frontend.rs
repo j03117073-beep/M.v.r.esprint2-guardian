@@ -110,7 +110,7 @@ pub enum FrontendError {
 }
 
 /// Deterministic constraints enforcement
-pub fn enforce_deterministic_constraints(ir: &mut IRModule) -> Result<(), FrontendError> {
+pub fn enforce_deterministic_constraints(_ir: &mut IRModule) -> Result<(), FrontendError> {
     // Remove nondeterministic constructs
     // Forbid unbounded recursion
     // Normalize control flow
