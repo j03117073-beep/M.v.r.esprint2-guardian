@@ -7,11 +7,11 @@
 use axum::{routing::get, Json, Router};
 use m_v_r_esprint1::demo_pipeline::{run_full_demo, DemoResult, MarketSnapshot};
 use std::net::SocketAddr;
-use tokio;
+use tokio::net::TcpListener;
 
 #[tokio::main]
 async fn main() {
-    println!("🌐 TLBSS Demo Dashboard");
+    println!("TLBSS Demo Dashboard");
     println!("Starting server on http://localhost:3000");
 
     let app = Router::new()
@@ -22,10 +22,8 @@ async fn main() {
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     println!("Server listening on {}", addr);
 
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    let listener = TcpListener::bind(addr).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
 
 async fn root() -> &'static str {
@@ -51,4 +49,3 @@ async fn run_demo_api(
     let result = run_full_demo(snapshot);
     Json(result)
 }
-<parameter name="filePath">/workspaces/M.V.R.ESPRINT1/src/bin/dashboard.rs
