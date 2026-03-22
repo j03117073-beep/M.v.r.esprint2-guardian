@@ -1,37 +1,11 @@
-# Copyright © 2026 OBINNA JAMES EJIOFOR
-# All Rights Reserved.
-#
-# This file is part of the M.V.R.ESPRINT1 Sovereign Execution System,
-# including TLBSS geometry, the Universal Execution Layer, the
-# Deterministic IR, Rust Codegen Pipeline, SovereignBus, and the
-# Cryptographic Audit Chain.
-#
-# No part of this file, its algorithms, structures, or designs may be
-# copied, reproduced, modified, distributed, published, sublicensed,
-# reverse-engineered, or used to create derivative works without the
-# express written permission of OBINNA JAMES EJIOFOR.
-#
-# This software contains proprietary trade secrets and confidential
-# intellectual property. Unauthorized use is strictly prohibited.
-
-
-[package]
+﻿[package]
 name = "m_v_r_esprint1"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+anyhow = "1"
+csv = "1"
+serde = { version = "1", features = ["derive"] }
 sha2 = "0.10"
-ed25519-dalek = "2.0"
-tempfile = "3.8"
-core_affinity = "0.8"
 hex = "0.4"
-tss-esapi = "7.6.0"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-axum = "0.7"
-tokio = { version = "1", features = ["full"] }
-
-[features]
-default = []
-tpm = []
