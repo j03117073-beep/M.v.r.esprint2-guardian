@@ -629,8 +629,8 @@ mod tests {
 
     #[test]
     fn test_headroom_violation() {
-        let state = State {
-            resources: vec![Resource {
+        let state = OldState {
+            resources: vec![OldResource {
                 id: "res1".to_string(),
                 status: "ON".to_string(),
                 telemetered_output: 105.0, // hsl = 100, remaining_up = -5
@@ -640,8 +640,8 @@ mod tests {
                 reg_up_qualification: 15.0,
             }],
         };
-        let proposal = Proposal {
-            reg_up_awards: vec![Award {
+        let proposal = OldProposal {
+            reg_up_awards: vec![OldAward {
                 id: "res1".to_string(),
                 value: 10.0,
             }],
@@ -656,8 +656,8 @@ mod tests {
 
     #[test]
     fn test_ineligible_resource() {
-        let state = State {
-            resources: vec![Resource {
+        let state = OldState {
+            resources: vec![OldResource {
                 id: "res1".to_string(),
                 status: "OFF".to_string(),
                 telemetered_output: 80.0,
@@ -667,8 +667,8 @@ mod tests {
                 reg_up_qualification: 15.0,
             }],
         };
-        let proposal = Proposal {
-            reg_up_awards: vec![Award {
+        let proposal = OldProposal {
+            reg_up_awards: vec![OldAward {
                 id: "res1".to_string(),
                 value: 5.0,
             }],
@@ -683,8 +683,8 @@ mod tests {
 
     #[test]
     fn test_unknown_resource() {
-        let state = State {
-            resources: vec![Resource {
+        let state = OldState {
+            resources: vec![OldResource {
                 id: "res1".to_string(),
                 status: "ON".to_string(),
                 telemetered_output: 80.0,
@@ -694,8 +694,8 @@ mod tests {
                 reg_up_qualification: 15.0,
             }],
         };
-        let proposal = Proposal {
-            reg_up_awards: vec![Award {
+        let proposal = OldProposal {
+            reg_up_awards: vec![OldAward {
                 id: "res2".to_string(),
                 value: 5.0,
             }],
@@ -710,8 +710,8 @@ mod tests {
 
     #[test]
     fn test_negative_award() {
-        let state = State {
-            resources: vec![Resource {
+        let state = OldState {
+            resources: vec![OldResource {
                 id: "res1".to_string(),
                 status: "ON".to_string(),
                 telemetered_output: 80.0,
@@ -721,8 +721,8 @@ mod tests {
                 reg_up_qualification: 15.0,
             }],
         };
-        let proposal = Proposal {
-            reg_up_awards: vec![Award {
+        let proposal = OldProposal {
+            reg_up_awards: vec![OldAward {
                 id: "res1".to_string(),
                 value: -5.0,
             }],
@@ -737,8 +737,8 @@ mod tests {
 
     #[test]
     fn test_ineligible_with_zero_award() {
-        let state = State {
-            resources: vec![Resource {
+        let state = OldState {
+            resources: vec![OldResource {
                 id: "res1".to_string(),
                 status: "OFF".to_string(),
                 telemetered_output: 80.0,
@@ -748,8 +748,8 @@ mod tests {
                 reg_up_qualification: 15.0,
             }],
         };
-        let proposal = Proposal {
-            reg_up_awards: vec![Award {
+        let proposal = OldProposal {
+            reg_up_awards: vec![OldAward {
                 id: "res1".to_string(),
                 value: 0.0,
             }],
