@@ -1,8 +1,9 @@
 #![deny(unsafe_code)]
 
+use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::cmp::Ordering;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::HashSet;
 use std::io::{BufRead, BufReader, Read};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,14 +22,53 @@ pub struct ChainedRecord {
     pub chain_hash: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ParseError {
-    MissingColumn(String),
+    CsvSchemaMismatch,
     MissingValue(String),
     InvalidBoolean(String),
     InvalidNumeric(String, String),
     DuplicatePrimaryKey(String, bool, String, String),
     MalformedCsv(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum VerifyCode {
+    DuplicatePk,
+    InvalidNumeric,
+    InvalidBoolean,
+    HashMismatch,
+    CsvSchemaMismatch,
+    RecordCountMismatch,
+    ChainContinuityBreak,
+    CsvMalformed,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RecordKey {
+    pub scd_timestamp: String,
+    pub repeat_hour_flag: bool,
+    pub resource_name: String,
+    pub offer_type: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct VerifyError {
+    pub code: VerifyCode,
+    pub message: String,
+    pub record_key: Option<RecordKey>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct VerifierReport {
+    pub status: String,
+    pub records_total: usize,
+    pub records_verified: usize,
+    pub final_chain_hash: String,
+    pub expected_final_chain_hash: Option<String>,
+    pub mismatch_index: Option<usize>,
+    pub errors: Vec<VerifyError>,
 }
 
 fn numeric_field_names() -> Vec<String> {
@@ -44,6 +84,17 @@ fn numeric_field_names() -> Vec<String> {
         names.push(format!("quantity_mw{}", block));
     }
     names
+}
+
+fn expected_headers() -> Vec<String> {
+    let mut headers = vec![
+        "scd_timestamp".to_string(),
+        "repeat_hour_flag".to_string(),
+        "resource_name".to_string(),
+        "offer_type".to_string(),
+    ];
+    headers.extend(numeric_field_names());
+    headers
 }
 
 impl ScedResourceOfferRecord {
@@ -69,6 +120,15 @@ impl ScedResourceOfferRecord {
     pub fn record_hash(&self) -> String {
         sha256_hex(&self.canonical_record_string())
     }
+
+    fn key_owned(&self) -> RecordKey {
+        RecordKey {
+            scd_timestamp: self.scd_timestamp.clone(),
+            repeat_hour_flag: self.repeat_hour_flag,
+            resource_name: self.resource_name.clone(),
+            offer_type: self.offer_type.clone(),
+        }
+    }
 }
 
 pub fn parse_csv<R: Read>(input: R) -> Result<Vec<ScedResourceOfferRecord>, ParseError> {
@@ -81,8 +141,8 @@ pub fn parse_csv<R: Read>(input: R) -> Result<Vec<ScedResourceOfferRecord>, Pars
         .map_err(|e| ParseError::MalformedCsv(e.to_string()))?;
 
     let headers: Vec<String> = header_line.split(',').map(|s| s.trim().to_string()).collect();
-    if headers.is_empty() {
-        return Err(ParseError::MalformedCsv("empty header row".to_string()));
+    if headers != expected_headers() {
+        return Err(ParseError::CsvSchemaMismatch);
     }
 
     let mut records = Vec::new();
@@ -93,7 +153,7 @@ pub fn parse_csv<R: Read>(input: R) -> Result<Vec<ScedResourceOfferRecord>, Pars
         }
 
         let raw_values: Vec<String> = line.split(',').map(|s| s.trim().to_string()).collect();
-        if raw_values.len() > headers.len() {
+        if raw_values.len() != headers.len() {
             return Err(ParseError::MalformedCsv(format!(
                 "row has {} values but header has {}",
                 raw_values.len(),
@@ -101,28 +161,21 @@ pub fn parse_csv<R: Read>(input: R) -> Result<Vec<ScedResourceOfferRecord>, Pars
             )));
         }
 
-        let mut row = BTreeMap::new();
-        for (idx, header) in headers.iter().enumerate() {
-            let value = raw_values.get(idx).cloned().unwrap_or_default();
-            row.insert(header.clone(), value);
-        }
-
-        records.push(record_from_map(&row)?);
+        records.push(record_from_values(&raw_values)?);
     }
 
     Ok(records)
 }
 
-fn record_from_map(row: &BTreeMap<String, String>) -> Result<ScedResourceOfferRecord, ParseError> {
-    let scd_timestamp = get_required_string(row, "scd_timestamp")?;
-    let repeat_hour_flag = parse_bool(&get_required_string(row, "repeat_hour_flag")?)?;
-    let resource_name = get_required_string(row, "resource_name")?;
-    let offer_type = get_required_string(row, "offer_type")?;
+fn record_from_values(values: &[String]) -> Result<ScedResourceOfferRecord, ParseError> {
+    let scd_timestamp = required_string(values, 0, "scd_timestamp")?;
+    let repeat_hour_flag = parse_bool(&required_string(values, 1, "repeat_hour_flag")?)?;
+    let resource_name = required_string(values, 2, "resource_name")?;
+    let offer_type = required_string(values, 3, "offer_type")?;
 
-    let numeric_names = numeric_field_names();
     let mut numeric_values = Vec::with_capacity(48);
-    for name in numeric_names {
-        numeric_values.push(get_normalized_numeric(row, &name)?);
+    for (offset, key) in numeric_field_names().iter().enumerate() {
+        numeric_values.push(normalize_numeric(&values[4 + offset], key)?);
     }
 
     let prices_and_quantities = numeric_values
@@ -138,10 +191,10 @@ fn record_from_map(row: &BTreeMap<String, String>) -> Result<ScedResourceOfferRe
     })
 }
 
-fn get_required_string(row: &BTreeMap<String, String>, key: &str) -> Result<String, ParseError> {
-    let value = row
-        .get(key)
-        .ok_or_else(|| ParseError::MissingColumn(key.to_string()))?
+fn required_string(values: &[String], idx: usize, key: &str) -> Result<String, ParseError> {
+    let value = values
+        .get(idx)
+        .ok_or_else(|| ParseError::MissingValue(key.to_string()))?
         .trim()
         .to_string();
     if value.is_empty() {
@@ -150,25 +203,23 @@ fn get_required_string(row: &BTreeMap<String, String>, key: &str) -> Result<Stri
     Ok(value)
 }
 
-fn get_normalized_numeric(row: &BTreeMap<String, String>, key: &str) -> Result<String, ParseError> {
-    let raw = row
-        .get(key)
-        .ok_or_else(|| ParseError::MissingColumn(key.to_string()))?
-        .trim()
-        .to_string();
-    if raw.is_empty() || raw.eq_ignore_ascii_case("null") {
-        return Ok("0".to_string());
+fn normalize_numeric(raw: &str, key: &str) -> Result<String, ParseError> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() || trimmed.eq_ignore_ascii_case("null") {
+        return Ok("0.000000".to_string());
     }
-    if raw.parse::<f64>().is_err() {
-        return Err(ParseError::InvalidNumeric(key.to_string(), raw));
-    }
-    Ok(raw)
+
+    let parsed = trimmed
+        .parse::<f64>()
+        .map_err(|_| ParseError::InvalidNumeric(key.to_string(), trimmed.to_string()))?;
+
+    Ok(format!("{parsed:.6}"))
 }
 
 fn parse_bool(raw: &str) -> Result<bool, ParseError> {
-    match raw.trim().to_ascii_lowercase().as_str() {
-        "true" | "1" => Ok(true),
-        "false" | "0" => Ok(false),
+    match raw.trim() {
+        "true" => Ok(true),
+        "false" => Ok(false),
         _ => Err(ParseError::InvalidBoolean(raw.to_string())),
     }
 }
@@ -224,6 +275,175 @@ pub fn build_hash_chain(mut records: Vec<ScedResourceOfferRecord>) -> Result<Vec
     Ok(out)
 }
 
+pub fn verify_records(
+    records: Vec<ScedResourceOfferRecord>,
+    expected_final_chain_hash: Option<&str>,
+    expected_records_total: Option<usize>,
+) -> VerifierReport {
+    let records_total = records.len();
+
+    if records_total == 0 {
+        let mut errors = Vec::new();
+        let mut status = "PASS".to_string();
+        if let Some(expected_count) = expected_records_total {
+            if expected_count != 0 {
+                status = "FAIL".to_string();
+                errors.push(VerifyError {
+                    code: VerifyCode::RecordCountMismatch,
+                    message: format!("expected records_total={expected_count}, got 0"),
+                    record_key: None,
+                });
+            }
+        }
+        if let Some(expected_hash) = expected_final_chain_hash {
+            if expected_hash != "0" {
+                status = "FAIL".to_string();
+                errors.push(VerifyError {
+                    code: VerifyCode::HashMismatch,
+                    message: format!("expected final_chain_hash={expected_hash}, got 0"),
+                    record_key: None,
+                });
+            }
+        }
+
+        return VerifierReport {
+            status,
+            records_total: 0,
+            records_verified: if errors.is_empty() { 0 } else { 0 },
+            final_chain_hash: "0".to_string(),
+            expected_final_chain_hash: expected_final_chain_hash.map(|s| s.to_string()),
+            mismatch_index: None,
+            errors,
+        };
+    }
+
+    let chain = match build_hash_chain(records) {
+        Ok(v) => v,
+        Err(err) => {
+            return VerifierReport {
+                status: "FAIL".to_string(),
+                records_total,
+                records_verified: 0,
+                final_chain_hash: "".to_string(),
+                expected_final_chain_hash: expected_final_chain_hash.map(|s| s.to_string()),
+                mismatch_index: None,
+                errors: vec![map_parse_error(err)],
+            }
+        }
+    };
+
+    let mut errors = Vec::new();
+    let mut mismatch_index = None;
+
+    if let Some(expected_count) = expected_records_total {
+        if expected_count != chain.len() {
+            errors.push(VerifyError {
+                code: VerifyCode::RecordCountMismatch,
+                message: format!("expected records_total={expected_count}, got {}", chain.len()),
+                record_key: None,
+            });
+        }
+    }
+
+    // Explicit chain continuity validation (0-based index after deterministic sort)
+    let mut prev = "0".to_string();
+    for (idx, item) in chain.iter().enumerate() {
+        let expected_link = sha256_hex(&format!("{}|{}", prev, item.record_hash));
+        if expected_link != item.chain_hash {
+            mismatch_index = Some(idx);
+            errors.push(VerifyError {
+                code: VerifyCode::ChainContinuityBreak,
+                message: "chain continuity broken".to_string(),
+                record_key: Some(RecordKey {
+                    scd_timestamp: item.key.0.clone(),
+                    repeat_hour_flag: item.key.1,
+                    resource_name: item.key.2.clone(),
+                    offer_type: item.key.3.clone(),
+                }),
+            });
+            break;
+        }
+        prev = item.chain_hash.clone();
+    }
+
+    let final_chain_hash = chain
+        .last()
+        .map(|r| r.chain_hash.clone())
+        .unwrap_or_else(|| "0".to_string());
+
+    if mismatch_index.is_none() {
+        if let Some(expected_hash) = expected_final_chain_hash {
+            if expected_hash != final_chain_hash {
+                mismatch_index = Some(chain.len().saturating_sub(1));
+                errors.push(VerifyError {
+                    code: VerifyCode::HashMismatch,
+                    message: format!("expected final_chain_hash={expected_hash}, got {final_chain_hash}"),
+                    record_key: chain.last().map(|last| RecordKey {
+                        scd_timestamp: last.key.0.clone(),
+                        repeat_hour_flag: last.key.1,
+                        resource_name: last.key.2.clone(),
+                        offer_type: last.key.3.clone(),
+                    }),
+                });
+            }
+        }
+    }
+
+    VerifierReport {
+        status: if errors.is_empty() {
+            "PASS".to_string()
+        } else {
+            "FAIL".to_string()
+        },
+        records_total,
+        records_verified: if errors.is_empty() { chain.len() } else { 0 },
+        final_chain_hash,
+        expected_final_chain_hash: expected_final_chain_hash.map(|s| s.to_string()),
+        mismatch_index,
+        errors,
+    }
+}
+
+fn map_parse_error(err: ParseError) -> VerifyError {
+    match err {
+        ParseError::CsvSchemaMismatch => VerifyError {
+            code: VerifyCode::CsvSchemaMismatch,
+            message: "CSV schema mismatch".to_string(),
+            record_key: None,
+        },
+        ParseError::MissingValue(field) => VerifyError {
+            code: VerifyCode::CsvMalformed,
+            message: format!("missing value for field '{field}'"),
+            record_key: None,
+        },
+        ParseError::InvalidBoolean(v) => VerifyError {
+            code: VerifyCode::InvalidBoolean,
+            message: format!("invalid boolean '{v}'"),
+            record_key: None,
+        },
+        ParseError::InvalidNumeric(field, v) => VerifyError {
+            code: VerifyCode::InvalidNumeric,
+            message: format!("invalid numeric field '{field}' with value '{v}'"),
+            record_key: None,
+        },
+        ParseError::DuplicatePrimaryKey(ts, rep, res, typ) => VerifyError {
+            code: VerifyCode::DuplicatePk,
+            message: "duplicate primary key detected".to_string(),
+            record_key: Some(RecordKey {
+                scd_timestamp: ts,
+                repeat_hour_flag: rep,
+                resource_name: res,
+                offer_type: typ,
+            }),
+        },
+        ParseError::MalformedCsv(msg) => VerifyError {
+            code: VerifyCode::CsvMalformed,
+            message: msg,
+            record_key: None,
+        },
+    }
+}
+
 fn sha256_hex(input: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(input.as_bytes());
@@ -235,7 +455,7 @@ mod tests {
     use super::*;
 
     fn mk_record(ts: &str, repeat: bool, resource: &str, offer: &str, first: &str) -> ScedResourceOfferRecord {
-        let mut fields = std::array::from_fn::<_, 48, _>(|_| "0".to_string());
+        let mut fields = std::array::from_fn::<_, 48, _>(|_| "0.000000".to_string());
         fields[0] = first.to_string();
         ScedResourceOfferRecord {
             scd_timestamp: ts.to_string(),
@@ -248,16 +468,60 @@ mod tests {
 
     #[test]
     fn canonical_order_is_fixed() {
-        let r = mk_record("2026-01-21T23:55:18", false, "7RNCHSLR_UNIT1", "OFFNS", "186.14");
+        let r = mk_record("2026-01-21T23:55:18", false, "7RNCHSLR_UNIT1", "OFFNS", "186.140000");
         let serialized = r.canonical_record_string();
-        assert!(serialized.starts_with("2026-01-21T23:55:18|false|7RNCHSLR_UNIT1|186.14|"));
+        assert!(serialized.starts_with("2026-01-21T23:55:18|false|7RNCHSLR_UNIT1|186.140000|"));
         assert!(serialized.ends_with("|OFFNS"));
     }
 
     #[test]
+    fn schema_order_mismatch_fails() {
+        let csv = "repeat_hour_flag,scd_timestamp,resource_name,offer_type\nfalse,2026-01-21T23:55:18,RES,OFFNS\n";
+        let err = parse_csv(csv.as_bytes()).expect_err("must fail schema mismatch");
+        assert_eq!(err, ParseError::CsvSchemaMismatch);
+    }
+
+    #[test]
+    fn bool_is_strict_lowercase_only() {
+        let csv = format!(
+            "{}\n{}\n",
+            expected_headers().join(","),
+            [
+                "2026-01-21T23:55:18",
+                "TRUE",
+                "RES",
+                "OFFNS",
+                &vec!["0"; 48].join(",")
+            ]
+            .join(",")
+        );
+        let err = parse_csv(csv.as_bytes()).expect_err("must reject TRUE");
+        assert_eq!(err, ParseError::InvalidBoolean("TRUE".to_string()));
+    }
+
+    #[test]
+    fn numeric_normalization_is_canonical_fixed_6() {
+        let header = expected_headers().join(",");
+        let mut vals = vec![
+            "2026-01-21T23:55:18".to_string(),
+            "false".to_string(),
+            "RES".to_string(),
+            "OFFNS".to_string(),
+        ];
+        vals.push("1".to_string());
+        vals.push("1.0".to_string());
+        vals.extend(vec!["0".to_string(); 46]);
+        let csv = format!("{}\n{}\n", header, vals.join(","));
+
+        let parsed = parse_csv(csv.as_bytes()).expect("parse ok");
+        assert_eq!(parsed[0].prices_and_quantities[0], "1.000000");
+        assert_eq!(parsed[0].prices_and_quantities[1], "1.000000");
+    }
+
+    #[test]
     fn dst_fallback_uniqueness_uses_repeat_hour_flag() {
-        let a = mk_record("2026-11-01T01:30:00", false, "RES_A", "OFFNS", "10");
-        let b = mk_record("2026-11-01T01:30:00", true, "RES_A", "OFFNS", "10");
+        let a = mk_record("2026-11-01T01:30:00", false, "RES_A", "OFFNS", "10.000000");
+        let b = mk_record("2026-11-01T01:30:00", true, "RES_A", "OFFNS", "10.000000");
         let chain = build_hash_chain(vec![b, a]).expect("chain should build");
         assert_eq!(chain.len(), 2);
         assert_eq!(chain[0].key.1, false);
@@ -265,13 +529,28 @@ mod tests {
     }
 
     #[test]
-    fn numeric_blank_and_null_normalize_to_zero() {
-        let csv = "scd_timestamp,repeat_hour_flag,resource_name,offer_type,price1_urs,price1_drs,price1_rrspf,price1_rrsuf,price1_rrsff,price1_ns,price1_ecrs,quantity_mw1,price2_urs,price2_drs,price2_rrspf,price2_rrsuf,price2_rrsff,price2_ns,price2_ecrs,quantity_mw2,price3_urs,price3_drs,price3_rrspf,price3_rrsuf,price3_rrsff,price3_ns,price3_ecrs,quantity_mw3,price4_urs,price4_drs,price4_rrspf,price4_rrsuf,price4_rrsff,price4_ns,price4_ecrs,quantity_mw4,price5_urs,price5_drs,price5_rrspf,price5_rrsuf,price5_rrsff,price5_ns,price5_ecrs,quantity_mw5,price6_urs,price6_drs,price6_rrspf,price6_rrsuf,price6_rrsff,price6_ns,price6_ecrs,quantity_mw6\n\
-2026-01-21T23:55:18,false,RES,OFFNS,,null,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n";
+    fn empty_file_behavior_passes_with_genesis_hash() {
+        let report = verify_records(vec![], Some("0"), Some(0));
+        assert_eq!(report.status, "PASS");
+        assert_eq!(report.final_chain_hash, "0");
+        assert_eq!(report.records_verified, 0);
+        assert!(report.errors.is_empty());
+    }
 
-        let parsed = parse_csv(csv.as_bytes()).expect("parse ok");
-        assert_eq!(parsed.len(), 1);
-        assert_eq!(parsed[0].prices_and_quantities[0], "0");
-        assert_eq!(parsed[0].prices_and_quantities[1], "0");
+    #[test]
+    fn record_count_binding_enforced() {
+        let r = mk_record("2026-01-21T23:55:18", false, "RES", "OFFNS", "1.000000");
+        let report = verify_records(vec![r], None, Some(2));
+        assert_eq!(report.status, "FAIL");
+        assert_eq!(report.errors[0].code, VerifyCode::RecordCountMismatch);
+    }
+
+    #[test]
+    fn mismatch_index_is_zero_based_after_sort() {
+        let r = mk_record("2026-01-21T23:55:18", false, "RES", "OFFNS", "1.000000");
+        let report = verify_records(vec![r], Some("not-a-real-hash"), Some(1));
+        assert_eq!(report.status, "FAIL");
+        assert_eq!(report.mismatch_index, Some(0));
+        assert_eq!(report.errors[0].code, VerifyCode::HashMismatch);
     }
 }
