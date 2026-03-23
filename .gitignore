@@ -1,0 +1,13 @@
+# Build artifacts
+/target/
+
+# Local tooling
+/.codex/
+/.vscode/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

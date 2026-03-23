@@ -1,0 +1,8 @@
+{
+  "license": "Copyright © 2026 OBINNA JAMES EJIOFOR\nAll Rights Reserved.\n\nThis file is part of the M.V.R.ESPRINT1 Sovereign Execution System,\nincluding TLBSS geometry, the Universal Execution Layer, the\nDeterministic IR, Rust Codegen Pipeline, SovereignBus, and the\nCryptographic Audit Chain.\n\nNo part of this file, its algorithms, structures, or designs may be\ncopied, reproduced, modified, distributed, published, sublicensed,\nreverse-engineered, or used to create derivative works without the\nexpress written permission of OBINNA JAMES EJIOFOR.\n\nThis software contains proprietary trade secrets and confidential\nintellectual property. Unauthorized use is strictly prohibited.",
+  "policies": {
+    "TPL-008-1": "enabled",
+    "PRC-029-1": "enabled",
+    "CIP-012-2": "enabled"
+  }
+}

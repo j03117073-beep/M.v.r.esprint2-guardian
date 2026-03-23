@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GRID OPS | Sovereign Control</title>
+  <style>
+    :root {
+      --bg: #05070a;
+      --panel: #0d1117;
+      --border: #1f2937;
+      --text: #c9d1d9;
+      --neon-green: #00ff9c;
+      --neon-yellow: #ffbd2e;
+      --neon-red: #ff4444;
+      --neon-blue: #00d4ff;
+      --accent-glow: rgba(0, 212, 255, 0.1);
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Header & Global Status */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: 8px;
+      margin-bottom: 15px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+
+    .status-badge {
+      padding: 5px 15px;
+      border-radius: 4px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+    }
+
+    /* Dashboard Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 350px 1fr 350px;
+      grid-template-rows: 1fr 200px;
+      gap: 15px;
+      flex-grow: 1;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 15px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      font-size: 0.75rem;
+      color: #8b949e;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Metric Cards */
+    .metric-group { margin-bottom: 20px; }
+    .metric-value { font-size: 1.8rem; color: var(--neon-blue); text-shadow: 0 0 10px var(--accent-glow); }
+    .metric-label { font-size: 0.7rem; color: #8b949e; }
+
+    /* Violation List */
+    .violation-item {
+      background: rgba(255, 68, 68, 0.1);
+      border-left: 3px solid var(--neon-red);
+      padding: 8px;
+      margin-bottom: 5px;
+      font-size: 0.85rem;
+    }
+
+    /* Log / Timeline */
+    #timeline {
+      font-size: 0.8rem;
+      color: var(--neon-green);
+      height: 140px;
+      overflow-y: auto;
+      background: #000;
+      padding: 10px;
+      border-radius: 4px;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    select, button {
+      background: #161b22;
+      border: 1px solid var(--border);
+      color: white;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover { background: var(--border); border-color: var(--neon-blue); }
+
+    /* Animations */
+    .blink { animation: blink-animation 1s steps(5, start) infinite; }
+    @keyframes blink-animation { to { visibility: hidden; } }
+
+    /* Kinetic Equilibrium Visualizer */
+    #visualizer-container {
+        position: relative;
+        width: 100%;
+        height: 400px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: radial-gradient(circle, rgba(0,212,255,0.05) 0%, rgba(5,7,10,1) 80%);
+    }
+
+    #heartbeat-canvas {
+        filter: drop-shadow(0 0 15px rgba(0, 212, 255, 0.2));
+    }
+
+    .axis-label {
+        position: absolute;
+        font-size: 0.65rem;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <span style="color: var(--neon-blue); font-weight: bold;">⚡ GRID_OS</span>
+    <span style="color: #444; margin-left: 10px;">|</span>
+    <span id="timestamp" style="margin-left: 10px; font-size: 0.8rem;"></span>
+  </div>
+  <div id="status-display" class="status-badge">INITIALIZING...</div>
+  <div class="controls">
+    <select id="scenario">
+      <option value="normal">NORMAL_OPS</option>
+      <option value="reserve">RESERVE_SHORTAGE</option>
+      <option value="capacity">CAPACITY_CRITICAL</option>
+      <option value="collapse">SYSTEM_COLLAPSE</option>
+    </select>
+    <button onclick="runDemo()">EXECUTE SCENARIO</button>
+  </div>
+</header>
+
+<div class="dashboard-grid">
+
+  <div class="panel">
+    <div class="panel-header">System Telemetry <span>Live</span></div>
+    <div class="metric-group">
+      <div class="metric-label">TOTAL LOAD</div>
+      <div class="metric-value"><span id="load">0</span> <small style="font-size: 1rem;">MW</small></div>
+    </div>
+    <div class="metric-group">
+      <div class="metric-label">GENERATION</div>
+      <div class="metric-value"><span id="gen">0</span> <small style="font-size: 1rem;">MW</small></div>
+    </div>
+    <div class="metric-group">
+      <div class="metric-label">RESERVE MARGIN</div>
+      <div id="reserve-container" class="metric-value"><span id="reserve">0</span> <small style="font-size: 1rem;">MW</small></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">Kinetic Equilibrium <span>Dynamic Balance</span></div>
+    <div id="visualizer-container">
+      <canvas id="heartbeat-canvas" width="400" height="400"></canvas>
+      <div class="axis-label" style="top: 10px;">Load</div>
+      <div class="axis-label" style="bottom: 10px;">Voltage</div>
+      <div class="axis-label" style="left: 10px;">Generation</div>
+      <div class="axis-label" style="right: 10px;">Reserve</div>
+    </div>
+    <div id="summary-text" style="text-align:center; margin-top:-20px; font-weight:bold;"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">Incident Log <span>Critical Only</span></div>
+    <div id="alerts" style="margin-bottom: 20px;"></div>
+
+    <div class="panel-header">Kernel Response</div>
+    <div id="response" style="font-size: 0.85rem;"></div>
+  </div>
+
+  <div class="panel" style="grid-column: span 3;">
+    <div class="panel-header">State Evolution Timeline <span>t-series</span></div>
+    <div id="timeline"></div>
+  </div>
+
+</div>
+
+<script>
+// UI CONFIG
+const UI_CONFIG = {
+    axes: ['Load', 'Generation', 'Reserve', 'Voltage'],
+    colors: {
+        nominal: '#00ff9c',
+        critical: '#ff4444',
+        trace: 'rgba(0, 212, 255, 0.1)'
+    }
+};
+
+let historyStack = []; // Stores previous states for temporal tunnel
+
+async function runDemo() {
+  const scenario = document.getElementById("scenario").value;
+
+  try {
+    const res = await fetch(`/demo/${scenario}`);
+    const data = await res.json();
+
+    updateUI(data);
+    renderHeartbeat(data);
+  } catch (error) {
+    console.error('Demo execution failed:', error);
+    document.getElementById("status-display").textContent = "EXECUTION FAILED";
+    document.getElementById("status-display").style.color = "var(--neon-red)";
+  }
+}
+
+function updateUI(data) {
+  const statusEl = document.getElementById("status-display");
+  const mainIcon = document.getElementById("main-icon");
+
+  // Mock telemetry data (in real impl, would come from data)
+  const load = data.admissible ? 4500 : 5800;
+  const gen = data.admissible ? 5200 : 4800;
+  const reserve = data.admissible ? 700 : -1000;
+
+  document.getElementById("load").textContent = load;
+  document.getElementById("gen").textContent = gen;
+  document.getElementById("reserve").textContent = reserve;
+
+  // Update reserve color based on value
+  const reserveEl = document.getElementById("reserve-container");
+  if (reserve < 0) {
+    reserveEl.style.color = "var(--neon-red)";
+  } else {
+    reserveEl.style.color = "var(--neon-green)";
+  }
+
+  if (data.admissible) {
+    statusEl.textContent = "SYSTEM NOMINAL";
+    statusEl.style.color = "var(--neon-green)";
+    statusEl.style.borderColor = "var(--neon-green)";
+    statusEl.classList.remove("blink");
+  } else {
+    statusEl.textContent = "CRITICAL FAILURE";
+    statusEl.className = "status-badge blink";
+    statusEl.style.color = "var(--neon-red)";
+    statusEl.style.borderColor = "var(--neon-red)";
+  }
+
+  // Update alerts
+  const alertsEl = document.getElementById("alerts");
+  alertsEl.innerHTML = "";
+
+  if (!data.admissible) {
+    if (data.violations.capacity_upper > 0) {
+      alertsEl.innerHTML += `<div class="violation-item">⚠ Capacity Shortage: ${data.violations.capacity_upper.toFixed(1)} MW</div>`;
+    }
+    if (data.violations.reg_up > 0) {
+      alertsEl.innerHTML += `<div class="violation-item">⚠ Reserve Shortage: ${data.violations.reg_up.toFixed(1)} MW</div>`;
+    }
+  }
+
+  // Update response
+  const responseEl = document.getElementById("response");
+  responseEl.innerHTML = "";
+
+  if (data.l7_event) {
+    responseEl.innerHTML += `<div>🚨 L7: ${data.l7_event}</div>`;
+  }
+
+  if (data.engine_halt) {
+    responseEl.innerHTML += `<div>🛑 Engine: ${data.engine_halt}</div>`;
+  }
+
+  if (data.audit_halt) {
+    responseEl.innerHTML += `<div>📋 Audit: ${data.audit_halt}</div>`;
+  }
+
+  // Add to timeline
+  const time = new Date().toLocaleTimeString();
+  const entry = `<div>[${time}] STATE_CHANGE | Admissible: ${data.admissible} | Exec: ${data.execution_time_ms.toFixed(2)}ms</div>`;
+  const timelineEl = document.getElementById("timeline");
+  timelineEl.innerHTML = entry + timelineEl.innerHTML;
+
+  // Update summary text
+  document.getElementById("summary-text").textContent = data.admissible ? "EQUILIBRIUM" : "SATURATION DETECTED";
+  document.getElementById("summary-text").style.color = data.admissible ? "var(--neon-green)" : "var(--neon-red)";
+}
+
+function renderHeartbeat(data) {
+    const canvas = document.getElementById("heartbeat-canvas");
+    const ctx = canvas.getContext('2d');
+    const center = { x: canvas.width / 2, y: canvas.height / 2 };
+    const maxRadius = 150;
+
+    // Clear and draw reference rings
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    [0.5, 1.0].forEach(mag => {
+        ctx.beginPath();
+        ctx.arc(center.x, center.y, maxRadius * mag, 0, Math.PI * 2);
+        ctx.strokeStyle = mag === 1.0 ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.03)';
+        ctx.stroke();
+    });
+
+    // Prepare data points (normalized)
+    const currentMetrics = [
+        data.admissible ? 0.8 : 1.2,  // Load
+        data.admissible ? 0.9 : 0.7,  // Generation
+        data.admissible ? 0.8 : 0.3,  // Reserve
+        data.admissible ? 0.9 : 0.6,  // Voltage
+    ];
+
+    // Draw temporal tunnel
+    historyStack.push(currentMetrics);
+    if (historyStack.length > 10) historyStack.shift();
+
+    historyStack.forEach((state, index) => {
+        const opacity = index / historyStack.length;
+        drawPolygon(ctx, center, state, maxRadius, `rgba(0, 212, 255, ${opacity * 0.3})`, false);
+    });
+
+    // Draw current state
+    const mainColor = data.admissible ? UI_CONFIG.colors.nominal : UI_CONFIG.colors.critical;
+    drawPolygon(ctx, center, currentMetrics, maxRadius, mainColor, true);
+}
+
+function drawPolygon(ctx, center, metrics, maxRadius, color, isMain) {
+    ctx.beginPath();
+    metrics.forEach((m, i) => {
+        const angle = (i / metrics.length) * Math.PI * 2 - Math.PI / 2;
+        const r = Math.min(m * maxRadius, maxRadius * 1.5); // Cap at 1.5x nominal
+        const x = center.x + Math.cos(angle) * r;
+        const y = center.y + Math.sin(angle) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+
+    if (isMain) {
+        ctx.fillStyle = color.replace(')', ', 0.3)').replace('rgb', 'rgba');
+        ctx.fill();
+        ctx.lineWidth = 2;
+    } else {
+        ctx.lineWidth = 1;
+    }
+    ctx.strokeStyle = color;
+    ctx.stroke();
+}
+
+// Update timestamp
+setInterval(() => {
+  document.getElementById("timestamp").textContent = new Date().toISOString();
+}, 1000);
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById("status-display").textContent = "READY";
+  document.getElementById("status-display").style.color = "var(--neon-green)";
+});
+</script>
+
+</body>
+</html></content>
+<parameter name="filePath">/workspaces/M.V.R.ESPRINT1/dashboard.html
