@@ -4,7 +4,7 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::cmp::Ordering;
 use std::collections::HashSet;
-use std::io::{BufRead, BufReader, Read};
+use std::io::Read;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScedResourceOfferRecord {
@@ -121,46 +121,33 @@ impl ScedResourceOfferRecord {
         sha256_hex(&self.canonical_record_string())
     }
 
-    fn key_owned(&self) -> RecordKey {
-        RecordKey {
-            scd_timestamp: self.scd_timestamp.clone(),
-            repeat_hour_flag: self.repeat_hour_flag,
-            resource_name: self.resource_name.clone(),
-            offer_type: self.offer_type.clone(),
-        }
-    }
 }
 
 pub fn parse_csv<R: Read>(input: R) -> Result<Vec<ScedResourceOfferRecord>, ParseError> {
-    let reader = BufReader::new(input);
-    let mut lines = reader.lines();
+    let mut reader = csv::ReaderBuilder::new()
+        .has_headers(true)
+        .trim(csv::Trim::None)
+        .from_reader(input);
 
-    let header_line = lines
-        .next()
-        .ok_or_else(|| ParseError::MalformedCsv("missing header row".to_string()))?
+    let headers = reader
+        .headers()
         .map_err(|e| ParseError::MalformedCsv(e.to_string()))?;
-
-    let headers: Vec<String> = header_line.split(',').map(|s| s.trim().to_string()).collect();
-    if headers != expected_headers() {
+    let found_headers: Vec<String> = headers.iter().map(|h| h.trim().to_string()).collect();
+    if found_headers != expected_headers() {
         return Err(ParseError::CsvSchemaMismatch);
     }
 
     let mut records = Vec::new();
-    for line_result in lines {
-        let line = line_result.map_err(|e| ParseError::MalformedCsv(e.to_string()))?;
-        if line.trim().is_empty() {
-            continue;
-        }
-
-        let raw_values: Vec<String> = line.split(',').map(|s| s.trim().to_string()).collect();
-        if raw_values.len() != headers.len() {
+    for row in reader.records() {
+        let row = row.map_err(|e| ParseError::MalformedCsv(e.to_string()))?;
+        let raw_values: Vec<String> = row.iter().map(|v| v.trim().to_string()).collect();
+        if raw_values.len() != found_headers.len() {
             return Err(ParseError::MalformedCsv(format!(
                 "row has {} values but header has {}",
                 raw_values.len(),
-                headers.len()
+                found_headers.len()
             )));
         }
-
         records.push(record_from_values(&raw_values)?);
     }
 
@@ -402,6 +389,28 @@ pub fn verify_records(
         mismatch_index,
         errors,
     }
+}
+
+pub fn verify_csv<R: Read>(
+    input: R,
+    expected_final_chain_hash: Option<&str>,
+    expected_records_total: Option<usize>,
+) -> VerifierReport {
+    let parsed = match parse_csv(input) {
+        Ok(v) => v,
+        Err(err) => {
+            return VerifierReport {
+                status: "FAIL".to_string(),
+                records_total: 0,
+                records_verified: 0,
+                final_chain_hash: "".to_string(),
+                expected_final_chain_hash: expected_final_chain_hash.map(|s| s.to_string()),
+                mismatch_index: None,
+                errors: vec![map_parse_error(err)],
+            }
+        }
+    };
+    verify_records(parsed, expected_final_chain_hash, expected_records_total)
 }
 
 fn map_parse_error(err: ParseError) -> VerifyError {
