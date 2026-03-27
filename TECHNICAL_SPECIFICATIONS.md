@@ -1,333 +1,304 @@
 # M.V.R.ESPRINT1 Technical Specifications
 
-**Deterministic Assurance Overlay for Grid Operations**
+Updated to match the repository state verified on 2026-03-27.
 
-*Version 0.1.0 – March 2026*
+## Scope
 
----
+These specifications describe the currently implemented and verified deterministic paths:
 
-## Table of Contents
+- SCED verification and decomposition
+- hardened scenario execution
+- ICCP-aligned adapter ingestion
+- external model input validation
+- Integration Simulation Environment replay
+- structured failure signaling
 
-1. [System Overview](#system-overview)
-2. [Architecture](#architecture)
-3. [Component Specifications](#component-specifications)
-4. [Data Formats](#data-formats)
-5. [Performance Requirements](#performance-requirements)
-6. [Security Specifications](#security-specifications)
-7. [API Specifications](#api-specifications)
-8. [Dependencies](#dependencies)
-9. [Compliance Standards](#compliance-standards)
+No predictive or transport-layer logic is embedded in the kernel core.
 
----
+## Toolchain
 
-## System Overview
+- Rust edition: `2021`
+- Package manifest: [`Cargo.toml`](/workspaces/M.V.R.ESPRINT1/Cargo.toml)
+- Default attestation feature: `mock`
+- Optional hardware attestation feature: `tpm`
 
-M.V.R.ESPRINT1 is a Rust-based deterministic assurance layer for energy grid operations, providing cryptographically verifiable event reconstruction and tamper-evident audit trails.
+Primary dependencies in active use include:
 
-**Core Capabilities**:
-- Deterministic execution with 1kHz control loops
-- Cryptographic attestation of all decisions
-- Tamper-evident log chaining
-- External verification of integrity
-- Shadow-mode operation (no control authority)
+- `serde`
+- `serde_json`
+- `csv`
+- `sha2`
+- `hex`
+- `ed25519-dalek`
+- `anyhow`
+- `tokio`
+- `axum`
+- `time`
+- `tss-esapi` behind the optional `tpm` feature
 
-**Target Environment**: Linux-based grid control systems, compatible with ICCP/PMU/SCADA telemetry.
+## Verified Build Matrix
 
-**Market Operations Integration**: Directly implements ERCOT/PJM SCED constraint evaluation and L7 emergency protocols:
+Passes:
 
-- **Normal Operation**: Functions as SCED feasibility checker (ramp limits, capacity, reserves, transmission)
-- **Saturation Detection**: Identifies scarcity conditions when no feasible dispatch exists
-- **L7 Transitions**: Maps to regulatory emergency actions (RUC, reserves, scarcity pricing, emergency ratings, load shedding)
-
-**Regulatory Advantage**: Unlike optimizing SCED systems that hide infeasibility in tolerances, M.V.R.ESPRINT1 refuses invalid states and provides perfect auditability with explicit escalation.
-
----
-
-## Architecture
-
-### High-Level Architecture
-
-```
-[Telemetry Input]
-    ↓
-[Sovereign Kernel]
-    ├── TLBSS Engine (Physics Modeling)
-    ├── Regulatory Policy (Compliance Rules)
-    ├── Audit Guardian (Boundary Checks)
-    └── Signer (Cryptographic Attestation)
-    ↓
-[Sovereign Trace (Audit Chain)]
-    ↓
-[Verifier (External Validation)]
+```bash
+cargo check
+cargo test --no-run
+cargo test --lib
+cargo test scenario_kernel --lib
+cargo test external_model_inputs --lib
+cargo test ise --lib
+cargo build --bins
+./scripts/boot_pilot_scenario.sh
+./scripts/boot_full_scenario.sh
+cargo run --quiet --bin scenario_runner -- --mode pilot --json
+cargo run --quiet --bin verifier -- scenario_attestation_log.json
+cargo run --quiet --bin ise_runner -- --mode accelerated --factor 60
 ```
 
-### Module Structure
+## SCED Verifier Specifications
 
-- **sovereign_kernel**: Core runtime and attestation generation
-- **tlbss_integrity_engine**: Grid physics and stability calculations
-- **regulatory_policy**: NERC/CIP compliance mappings
-- **audit_guardian**: Boundary condition monitoring
-- **constraint_system**: TLBSS-compliant constraint evaluation and admissibility checking
-- **sovereign_trace**: Immutable audit trail management
-- **sovereign_bus**: Unified communication channel
-- **universal_frontend**: Multi-language code ingestion
-- **crypto_pipeline**: Cryptographic binding pipeline
+### CLI Surface
 
-### Execution Model
+Implemented in [`src/bin/sced_chain.rs`](/workspaces/M.V.R.ESPRINT1/src/bin/sced_chain.rs):
 
-- **Deterministic**: All operations produce identical outputs for identical inputs
-- **Bounded Latency**: 1ms maximum execution time per control cycle
-- **Memory Safe**: No unsafe code, bounded memory usage
-- **Isolated**: No external network dependencies in runtime
+```bash
+cargo run --bin sced_chain -- verify <input.csv> [expected_hash]
+cargo run --bin sced_chain -- verify-full <input.csv>
+cargo run --bin sced_chain -- benchmark <input.csv>
+cargo run --bin sced_chain -- verify-against <input.csv> <reference.csv>
+cargo run --bin sced_chain -- decompose <zip_or_folder>
+cargo run --bin sced_chain -- --decompose <zip_file>
+cargo run --bin sced_chain -- predict --sample
+cargo run --bin sced_chain -- predict --validate <prediction.json>
+```
 
----
+### Deterministic Processing Rules
 
-## Component Specifications
+- exact header matching
+- canonical record sort by `scd_timestamp`, `repeat_hour_flag`, `resource_name`, `offer_type`
+- numeric normalization to 6 decimals
+- duplicate primary-key rejection
+- chain-hash generation using SHA-256
 
-### Sovereign Kernel
+### Physics Replay Rule
 
-- **Language**: Rust 2021
-- **Execution Model**: Single-threaded deterministic loop
-- **Control Frequency**: 1kHz (1ms cycle time)
-- **Memory Usage**: < 100MB resident
-- **CPU Usage**: < 10% on modern hardware
-- **Startup Time**: < 5 seconds
+For extended-schema records:
 
-### Attestation Pipeline
+```text
+recomputed_lmp = SYSTEM_LAMBDA - (SHIFT_FACTOR * SHADOW_PRICE)
+residual = abs(LMP - recomputed_lmp)
+```
 
-- **Hash Algorithm**: SHA-256
-- **Signature Algorithm**: SHA-256 with key (simulated) or TPM-backed
-- **Chain Integrity**: Hash-linked records with prev_hash
-- **Timestamp Precision**: Unix epoch seconds
-- **Record Size**: ~200 bytes per attestation
+Failure threshold:
 
-### Verifier
+- `residual >= 0.001` triggers `MATH_DEVIATION`
 
-- **Validation Checks**:
-  - Signature verification
-  - Hash chain integrity
-  - Timestamp monotonicity
+## Scenario Kernel Specifications
 
-### Constraint System
+### Files
 
-- **Purpose**: TLBSS-compliant constraint evaluation and admissibility certification
-- **Architecture**: Pure functions for violation assessment, binary admissibility checking
-- **Components**: ConstraintEvaluator (diagnostic), AdmissibilityChecker (certification), ConstraintBoundary (saturation detection)
-- **Constraints**: Ramp rates, capacity limits, regulation headroom/footroom requirements, time-coupled trajectories
-- **Principle**: Guardian certifies transitions, never modifies state
-- **Integration**: Parallel to TLBSS state evolution, provides admissibility filtering
-- **Saturation Detection**: Measures consecutive rejections to trigger L7 transitions
-- **Trajectory Evaluation**: Multi-interval admissibility checking with rolling horizon commitment
-  - PCR state consistency (when applicable)
-- **Performance**: < 1ms per record verification
-- **Output**: Pass/fail with detailed error reporting
+- kernel: [`src/scenario_kernel.rs`](/workspaces/M.V.R.ESPRINT1/src/scenario_kernel.rs)
+- attestation support: [`src/sovereign_kernel.rs`](/workspaces/M.V.R.ESPRINT1/src/sovereign_kernel.rs)
+- CLI: [`src/bin/scenario_runner.rs`](/workspaces/M.V.R.ESPRINT1/src/bin/scenario_runner.rs)
+- failure classification: [`src/failure_signal.rs`](/workspaces/M.V.R.ESPRINT1/src/failure_signal.rs)
 
-### Signer Modes
+### Execution Flow
 
-- **Simulation**: Deterministic software signing for testing
-- **TPM**: Hardware-backed signing with PCR binding (optional)
+```text
+Scenario Manifest
+  -> dataset presence validation
+  -> timestamp alignment validation
+  -> ICCP adapter normalization
+  -> external model input validation
+  -> unified state construction
+  -> deterministic kernel execution
+  -> validation and attestation
+  -> audit export
+```
 
----
+### CLI Surface
 
-## Data Formats
+```bash
+cargo run --bin scenario_runner -- --mode pilot|full [--manifest <path>] [--attestation-output <path>] [--audit-output <path>] [--quiet|--verbose] [--json]
+```
 
-### AttestationRecord (JSON)
+### Output Contract
+
+Primary outputs:
+
+- [`scenario_attestation_log.json`](/workspaces/M.V.R.ESPRINT1/scenario_attestation_log.json)
+- [`scenario_audit_ticket.md`](/workspaces/M.V.R.ESPRINT1/scenario_audit_ticket.md)
+
+Standard stdout modes:
+
+- default: clean operator-readable status lines
+- `--quiet`: minimal output
+- `--verbose`: expanded trace
+- `--json`: machine-readable stdout
+
+### State Vector Extensions
+
+The unified state vector now includes:
+
+- `telemetry_state`
+- `control_context`
+
+These are time-aligned and validated before execution.
+
+### Audit Requirements
+
+The Markdown audit ticket includes:
+
+- scenario name
+- execution timestamp
+- input summary
+- validation results
+- determinism confirmation
+- performance metrics
+- ICCP snapshot reference
+- timestamp alignment confirmation
+- telemetry consistency validation
+- external model snapshot reference
+
+## ICCP Adapter Specifications
+
+### Files
+
+- adapter: [`src/iccp_adapter.rs`](/workspaces/M.V.R.ESPRINT1/src/iccp_adapter.rs)
+
+### Responsibilities
+
+- ingest pre-decoded ICCP-mapped data
+- validate schema and completeness
+- normalize into kernel-compatible snapshots
+
+### Block Mapping
+
+Block 1 maps to:
+
+- real-time state inputs
+- analog values
+- system status indicators
+
+Block 2 maps to:
+
+- constraints
+- schedules
+- control intent signals
+
+### Deterministic Rules
+
+- ICCP data is snapshotted per SCED interval
+- no live streaming occurs during kernel execution
+- incomplete snapshots are rejected
+- schema mismatch fails closed
+
+## External Model Input Specifications
+
+### Files
+
+- validator: [`src/external_model_inputs.rs`](/workspaces/M.V.R.ESPRINT1/src/external_model_inputs.rs)
+
+### Responsibilities
+
+- accept externally generated forecast or optimization inputs
+- validate feasibility against system constraints
+- reject mathematically inconsistent states
+
+### Integrity Checks
+
+- load-generation balance
+- constraint coherence
+- storage feasibility
+- temporal consistency across intervals
+
+The kernel remains deterministic authority on correctness and does not implement any predictive model logic.
+
+## ISE Specifications
+
+### Files
+
+- ISE core: [`src/ise.rs`](/workspaces/M.V.R.ESPRINT1/src/ise.rs)
+- CLI: [`src/bin/ise_runner.rs`](/workspaces/M.V.R.ESPRINT1/src/bin/ise_runner.rs)
+
+### Execution Flow
+
+```text
+Replay -> Interface Layer -> MVR Kernel -> Validation -> Metrics
+```
+
+### Supported Replay Modes
+
+- `realtime`
+- `accelerated`
+- `step`
+
+### Supported Injections
+
+- `load-spike`
+- `outage-stress`
+- `constraint-stress`
+
+### Determinism Guardrails
+
+- injections are applied before execution by preparing a scenario variant
+- source inputs are not mutated mid-run
+- no nondeterministic randomness is used
+- snapshot validation is not bypassed
+
+### Reports
+
+- [`ise_performance_report.json`](/workspaces/M.V.R.ESPRINT1/ise_performance_report.json)
+- [`ise_performance_report.md`](/workspaces/M.V.R.ESPRINT1/ise_performance_report.md)
+- [`ise_scenario_timeline_log.jsonl`](/workspaces/M.V.R.ESPRINT1/ise_scenario_timeline_log.jsonl)
+
+## Structured Failure Signaling
+
+All failure paths are classified into a machine-readable truth event via [`src/failure_signal.rs`](/workspaces/M.V.R.ESPRINT1/src/failure_signal.rs).
+
+Canonical shape:
 
 ```json
 {
-  "decision_hash": "string (hex-encoded SHA-256)",
-  "pcr_digest": "string (hex-encoded 32 bytes)",
-  "signature": "string (hex-encoded signature)",
-  "timestamp": "u64 (Unix epoch seconds)",
-  "prev_hash": "string (hex-encoded SHA-256)"
+  "status": "INVALID",
+  "failure_type": "SNAPSHOT_INCONSISTENCY",
+  "invariant_violated": "STATE_INTEGRITY",
+  "timestamp": "...",
+  "execution_mode": "ISE_STEP"
 }
 ```
 
-### SovereignTrace
+This object is emitted:
 
-```rust
-pub struct SovereignTrace {
-    pub tick: u64,
-    pub ai_request: u64,
-    pub kernel_output: u64,
-    pub authority_level: u8,
-}
-```
+- on failing `scenario_runner --json` executions
+- inside failing ISE JSON reports
 
-### IRModule (Intermediate Representation)
+## Current Known-Good Binaries
 
-```rust
-pub struct IRModule {
-    pub functions: Vec<IRFunction>,
-    pub globals: Vec<IRGlobal>,
-}
-```
+- `sced_chain`
+- `verifier`
+- `demo`
+- `formal_proof_harness`
+- `dashboard`
+- `pilot_demo`
+- `scenario_runner`
+- `ise_runner`
 
-### Telemetry Input Format
+## Boundaries
 
-- **Protocol**: Configurable (ICCP, PMU, SCADA)
-- **Data Types**: IEEE 754 floating point, integers
-- **Frequency**: Up to 1kHz
-- **Latency**: < 100μs ingestion
+Implemented and verified:
 
----
+- deterministic replay and validation
+- evidence export
+- feature-gated attestation mode selection
+- ICCP-aligned snapshot ingestion
+- external model input integrity checks
+- reusable ISE replay
 
-## Performance Requirements
+Not implemented:
 
-### Latency Bounds
-
-- **Control Loop**: 1ms maximum cycle time
-- **Attestation Generation**: < 500μs per decision
-- **Verification**: < 1ms per record
-- **Telemetry Ingestion**: < 100μs
-
-### Throughput
-
-- **Attestations**: 1000/sec sustained
-- **Log Writes**: 10,000/sec burst
-- **Verification**: 1000 records/sec
-
-### Resource Limits
-
-- **Memory**: 256MB maximum heap usage
-- **Storage**: 1GB/day log generation (compressible)
-- **Network**: 10Mbps telemetry bandwidth
-- **CPU**: 2 cores minimum, 4 recommended
-
-### Reliability
-
-- **Uptime**: 99.9% availability target
-- **Data Integrity**: 100% (cryptographic guarantees)
-- **Fault Tolerance**: Graceful degradation on telemetry loss
-
----
-
-## Security Specifications
-
-### Cryptographic Primitives
-
-- **Hash Function**: SHA-256 (NIST FIPS 180-4)
-- **Signature**: ECDSA or TPM-backed (configurable)
-- **Key Management**: TPM 2.0 or software simulation
-- **Chain Integrity**: Hash-linked immutable logs
-
-### Threat Model
-
-- **Assumptions**: Trusted execution environment, secure boot
-- **Threats Mitigated**:
-  - Log tampering (cryptographic integrity)
-  - Replay attacks (timestamp + hash chaining)
-  - Man-in-the-middle (signed communications)
-  - Unauthorized access (boundary checks)
-
-### Compliance
-
-- **CIP-007**: System integrity protection
-- **CIP-010**: Configuration integrity
-- **CIP-013**: Supply chain risk management
-
-### Audit Capabilities
-
-- **Immutable Logs**: Append-only with cryptographic proof
-- **External Verification**: Independent validation tools
-- **Regulatory Evidence**: NERC-compliant audit trails
-
----
-
-## API Specifications
-
-### Public Interfaces
-
-#### Sovereign Kernel API
-
-```rust
-pub fn execute_foreign(
-    &mut self,
-    ir_module: &IRModule,
-    input: IRInput,
-) -> Result<IRResult, SystemHalt>
-```
-
-#### Signer API
-
-```rust
-pub trait Signer {
-    fn sign(&self, data: &[u8]) -> Result<Vec<u8>, SystemHalt>;
-    fn read_pcr(&self) -> Result<Vec<u8>, SystemHalt>;
-}
-```
-
-#### Verifier API
-
-```rust
-fn verify_chain(records: &[AttestationRecord]) -> Result<(), String>
-fn verify_signature(record: &AttestationRecord) -> Result<(), String>
-```
-
-### Binary Interfaces
-
-- **pilot_demo**: Generates sample attestations and verifies chain
-- **verifier**: Command-line verification tool
-- **sovereign_runtime**: Production kernel executable
-
-### Configuration API
-
-- **Environment Variables**:
-  - `SIGNER_MODE`: "simulation" | "tpm"
-  - `LOG_LEVEL`: "error" | "info" | "debug"
-  - `TELEMETRY_ENDPOINT`: URL string
-
----
-
-## Dependencies
-
-### Core Dependencies
-
-- **Rust**: 1.70+ (edition 2021)
-- **sha2**: 0.10 (cryptographic hashing)
-- **serde**: 1.0 (serialization)
-- **tss-esapi**: 7.6.0 (TPM integration, optional)
-
-### System Dependencies
-
-- **OpenSSL**: 1.1+ (cryptography)
-- **TPM 2.0 Libraries**: tpm2-tss (optional)
-- **Build Tools**: pkg-config, make
-
-### Development Dependencies
-
-- **cargo**: Rust package manager
-- **rustfmt**: Code formatting
-- **clippy**: Linting
-
----
-
-## Compliance Standards
-
-### NERC Standards
-
-- **BAL-001/002**: Frequency and ACE control
-- **PRC-005/023**: Protection system coordination
-- **FAC-008/014**: Facility interconnection requirements
-
-### Cybersecurity Standards
-
-- **CIP-002 through CIP-014**: Critical infrastructure protection
-- **NIST SP 800-53**: Security controls
-- **ISO 27001**: Information security management
-
-### Safety Standards
-
-- **IEC 61508**: Functional safety
-- **IEEE 1547**: Interconnection standards
-- **NERC TPL-001**: Transmission planning
-
-### Performance Standards
-
-- **IEEE C37.118**: Synchrophasor standards
-- **IEC 61850**: Substation automation
-- **DNP3/IEC 60870-5-104**: SCADA protocols
-
----
-
-*This specification document is for technical evaluation. Implementation details may evolve based on pilot feedback.*
+- actual ICCP protocol transport
+- live EMS or SCADA streaming integration
+- full grid physics simulation
+- statistical forecasting inside the kernel
+- default TPM-backed attestation on every run

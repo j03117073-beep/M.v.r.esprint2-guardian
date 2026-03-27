@@ -1,157 +1,116 @@
 # M.V.R.ESPRINT1 Pilot Brief
 
-**Deterministic Assurance Overlay for Grid Operations**
-
-*Prepared for ERCOT Engineering Review – March 2026*
-
----
+Updated to match the working repository state on 2026-03-27.
 
 ## Executive Summary
 
-M.V.R.ESPRINT1 provides a deterministic, cryptographically verifiable operational assurance layer for energy grid systems. It enhances existing infrastructure with zero-ambiguity event reconstruction and tamper-evident audit trails, addressing critical gaps in post-disturbance analysis and regulatory compliance.
+M.V.R.ESPRINT1 currently demonstrates the strongest pilot value as a deterministic validation and evidence system for SCED-style scenarios, integration replay, and operator-readable audit output.
 
-**Key Differentiator**: Unlike traditional systems that optimize control, M.V.R.ESPRINT1 reconstructs every decision deterministically and proves it hasn't been altered.
+The repo can already show:
 
-**Market Operations Mapping**: The system directly implements SCED constraint evaluation and L7 emergency escalation protocols used in ERCOT and PJM markets, providing perfect auditability for regulatory compliance.
+- deterministic SCED normalization and hash chaining
+- physics-consistent replay checks on extended SCED vectors
+- scenario execution with human-readable audit tickets
+- ICCP-aligned snapshot ingestion through an external adapter layer
+- external model input validation without embedding predictive logic
+- reusable ISE replay under normal and stressed conditions
+- structured failure classification for invalid states
 
-### TLBSS to Market Language Translation
+This makes the project suitable today for evaluation as a correctness authority and integration-readiness harness rather than as a full live deployment stack.
 
-| Component | ERCOT/PJM Equivalent |
-|-----------|---------------------|
-| TLBSS state evolution | SCED dispatch / AGC updates |
-| ConstraintEvaluator | SCED constraint engine |
-| AdmissibilityChecker | Feasibility checker |
-| Saturation (L6) | Scarcity condition |
-| L7 Transition | Operator intervention |
+## Current Pilot Story
 
-**L7 Emergency Actions**:
-- Resource Commitment → RUC/Operator Commit
-- Reserve Deployment → Responsive Reserves
-- Scarcity Pricing → ORDC Activation
-- Emergency Ratings → Transmission Override
-- Load Shedding → UFLS Procedures
+### What Is Real and Running
 
----
+- `sced_chain` validates, benchmarks, and decomposes SCED-style vectors
+- `scenario_runner` executes pilot and full scenario flows with deterministic audit outputs
+- the scenario kernel validates ICCP snapshots, external model inputs, storage behavior, and timestamp alignment
+- the ISE replays structured interface messages in `realtime`, `accelerated`, or `step` mode
+- failure paths emit machine-readable classification objects instead of ambiguous exits
 
-## Problem Statement
+### What Is Not Yet Pilot-Ready
 
-Grid operators and regulators face significant challenges in:
+- live ICCP protocol transport
+- live EMS or SCADA ingestion
+- full grid physics simulation
+- default hardware TPM evidence on every run
 
-- **Ambiguous Event Reconstruction**: Hours or days required to reconstruct disturbance causality from disparate logs
-- **Tamper-Evident Audit Trails**: Lack of cryptographic proof that logs haven't been modified post-event
-- **Deterministic Replay**: Inability to replay control decisions with exact input/output traceability
-- **Regulatory Evidence**: Difficulty proving compliance with NERC BAL-001/002 and PRC standards
+## Best Pilot Use Case Right Now
 
-These gaps lead to prolonged investigations, disputed root causes, and increased compliance risk.
+### Deterministic Replay, Validation, and Evidence Pack
 
----
+Recommended evaluation flow:
 
-## Solution Overview
+1. load a repository-controlled scenario or SCED vector
+2. validate schema, timestamps, ICCP blocks, and external model inputs
+3. execute the deterministic kernel
+4. emit operator-readable and machine-readable evidence
+5. replay the same scenario through ISE to measure behavior under realistic integration conditions
+6. inject controlled stress and observe classified failure behavior
 
-M.V.R.ESPRINT1 operates as a shadow-mode overlay that:
+Primary commands:
 
-- Consumes existing telemetry (ICCP/PMU/SCADA)
-- Generates deterministic control traces
-- Produces tamper-evident attestation chains
-- Enables zero-ambiguity reconstruction
-
-**No Control Authority**: Zero operational risk – purely observational and analytical.
-
----
-
-## Proposed ERCOT Pilot: Frequency Response Traceability
-
-**Scope**: Shadow-mode deterministic trace engine for BAL-001 frequency events.
-
-**Duration**: 3-6 months initial evaluation.
-
-**Integration**: Read-only consumption of existing ERCOT telemetry feeds.
-
-**Deliverables**:
-- Replayable event logs for frequency deviations
-- Control decision reconstruction with full traceability
-- Cryptographic proof of log integrity
-- Demonstration of post-event analysis acceleration
-
-**Risk Level**: Zero – no control authority, no operational impact.
-
----
-
-## Architecture Overview
-
-```
-[Telemetry Sources]
-    ↓ (ICCP/PMU/SCADA)
-[Sovereign Kernel]
-    ↓ (Deterministic Execution)
-[Attestation Pipeline]
-    ↓ (Hash + Sign + Chain)
-[Tamper-Evident Logs]
-    ↓ (Verifier Validation)
-[Regulatory Evidence]
+```bash
+./scripts/boot_pilot_scenario.sh
+cargo run --quiet --bin ise_runner -- --mode accelerated --factor 60
 ```
 
-**Key Components**:
-- **Sovereign Kernel**: 1kHz deterministic runtime
-- **TLBSS Engine**: Physics-based stability modeling
-- **Sovereign Trace**: Cryptographic audit chains
-- **Verifier**: Independent validation of integrity
+Stress command:
 
----
-
-## Example Output
-
-After processing a simulated frequency event:
-
-```json
-{
-  "event": "frequency_deviation",
-  "timestamp": 1710000000,
-  "decision": "increase_generation",
-  "inputs": {"frequency_hz": 59.91, "tie_line_mw": 150.0},
-  "constraints": {"bal_001_threshold": 59.94, "ramp_rate_limit": 10.0},
-  "attestation": {
-    "decision_hash": "a1b2c3...",
-    "pcr_digest": "d4e5f6...",
-    "signature": "g7h8i9...",
-    "prev_hash": "j0k1l2...",
-    "timestamp": 1710000000
-  },
-  "verification": "valid"
-}
+```bash
+cargo run --quiet --bin ise_runner -- --mode step --inject load-spike --inject constraint-stress --json-output ise_stress_report.json --markdown-output ise_stress_report.md --timeline-output ise_stress_timeline.jsonl
 ```
 
-**Verifier Result**: ✔ Chain verified: 128 records valid
+## Current Pilot Assets
 
----
+### Scenario and Replay Inputs
 
-## Phaseable Deployment Model
+- [`scenarios/ercot_proxy_outage_stress_scenario_v1/scenario_manifest.json`](/workspaces/M.V.R.ESPRINT1/scenarios/ercot_proxy_outage_stress_scenario_v1/scenario_manifest.json)
+- [`scenarios/ercot_proxy_outage_stress_scenario_v1/iccp_block1.json`](/workspaces/M.V.R.ESPRINT1/scenarios/ercot_proxy_outage_stress_scenario_v1/iccp_block1.json)
+- [`scenarios/ercot_proxy_outage_stress_scenario_v1/iccp_block2.json`](/workspaces/M.V.R.ESPRINT1/scenarios/ercot_proxy_outage_stress_scenario_v1/iccp_block2.json)
+- [`scenarios/ercot_proxy_outage_stress_scenario_v1/external_model_inputs.json`](/workspaces/M.V.R.ESPRINT1/scenarios/ercot_proxy_outage_stress_scenario_v1/external_model_inputs.json)
+- [`test_vectors/ERCOT_SCED_PHYSICS_20260322_PROXY.csv`](/workspaces/M.V.R.ESPRINT1/test_vectors/ERCOT_SCED_PHYSICS_20260322_PROXY.csv)
 
-1. **Phase 0 - Passive**: Telemetry consumption, trace generation (current pilot)
-2. **Phase 1 - Advisory**: Recommended setpoints and constraint flags
-3. **Phase 2 - Guardrail**: Soft blocking of unsafe commands
-4. **Phase 3 - Assisted Control**: Limited closed-loop authority
+### Current Evidence Outputs
 
-Each phase maintains zero operational risk until proven.
+- [`scenario_audit_ticket.md`](/workspaces/M.V.R.ESPRINT1/scenario_audit_ticket.md)
+- [`scenario_attestation_log.json`](/workspaces/M.V.R.ESPRINT1/scenario_attestation_log.json)
+- [`ise_performance_report.json`](/workspaces/M.V.R.ESPRINT1/ise_performance_report.json)
+- [`ise_stress_report.json`](/workspaces/M.V.R.ESPRINT1/ise_stress_report.json)
 
----
+## Verified Build Envelope
 
-## Value Proposition
+Passes:
 
-- **Immediate**: Accelerates disturbance analysis from hours to minutes
-- **Defensible**: Cryptographically provable evidence for regulatory submissions
-- **Scalable**: Foundation for broader grid assurance capabilities
-- **Low-Risk**: Shadow-mode deployment with no control authority
+```bash
+cargo check
+cargo test --no-run
+cargo test scenario_kernel --lib
+cargo test external_model_inputs --lib
+cargo test ise --lib
+./scripts/boot_pilot_scenario.sh
+./scripts/boot_full_scenario.sh
+cargo run --quiet --bin ise_runner -- --mode accelerated --factor 60
+```
 
----
+## Pilot Positioning
 
-## Next Steps
+Position the project today as:
 
-1. Review pilot brief and technical documentation
-2. Schedule technical deep-dive with engineering team
-3. Evaluate telemetry integration points
-4. Plan 3-month shadow-mode pilot execution
+- a deterministic verifier
+- an operator-readable audit system
+- an integration replay environment
+- a correctness gate for external telemetry and model-generated inputs
 
-**Contact**: OBINNA JAMES EJIOFOR
+Do not position it yet as:
 
-*This brief is derived from the full technical specification available in the M.V.R.ESPRINT1 repository.*
+- a live grid control platform
+- a full ICCP transport implementation
+- a predictive engine
+- a full grid simulator
+
+## Current Demonstration Claim
+
+The strongest honest pilot claim is:
+
+“Given fixed snapshots, MVR executes deterministically, explains its decisions clearly, and fails in a classified and reproducible way when system integrity breaks.”

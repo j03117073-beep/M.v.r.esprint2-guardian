@@ -1,281 +1,264 @@
 # M.V.R.ESPRINT1 Operational Manual
 
-**Deterministic Assurance Overlay for Grid Operations**
+This manual reflects the commands and workflows that are actually usable in the current repository state.
 
-*Version 0.1.0 – March 2026*
+## Intended Use Right Now
 
----
+Use this repository today for:
 
-## Table of Contents
+- SCED offer-chain verification and benchmarking
+- SCED decomposition and Phase III payload validation
+- deterministic library-level testing
+- demo scenario playback
+- dashboard serving
+- scenario demonstration execution
+- integration simulation and replay testing
+- pilot attestation log generation
+- formal evidentiary Markdown report generation
+- Ed25519-backed attestation-chain verification for correctly formatted JSON inputs
 
-1. [Introduction](#introduction)
-2. [System Requirements](#system-requirements)
-3. [Installation and Setup](#installation-and-setup)
-4. [Configuration](#configuration)
-5. [Operation](#operation)
-6. [Monitoring and Logging](#monitoring-and-logging)
-7. [Maintenance](#maintenance)
-8. [Troubleshooting](#troubleshooting)
-9. [Safety and Compliance](#safety-and-compliance)
-10. [Contact Information](#contact-information)
+## Environment Requirements
 
----
+- Linux or compatible Unix-like shell environment
+- Rust toolchain capable of building edition 2021 crates
+- enough local disk for `target/` build artifacts and CSV vectors
+- no system TPM libraries are required for the default build; deterministic `mock` attestation is the default
 
-## Introduction
+## Known-Good Commands
 
-M.V.R.ESPRINT1 is a deterministic, cryptographically verifiable assurance layer for energy grid operations. This manual provides guidance for deploying, operating, and maintaining the system in shadow mode for pilot evaluation.
+### Kernel Boot Surface
 
-**Key Features**:
-- Shadow-mode telemetry consumption
-- Deterministic attestation generation
-- Tamper-evident audit chains
-- External verification capabilities
-
-**Intended Use**: Pilot deployment with no control authority. All operations are observational and analytical.
-
----
-
-## System Requirements
-
-### Hardware Requirements
-- **CPU**: x86_64 or ARM64 architecture, minimum 4 cores
-- **RAM**: 8 GB minimum, 16 GB recommended
-- **Storage**: 50 GB available space for logs and data
-- **Network**: Ethernet connection for telemetry ingestion
-
-### Software Requirements
-- **Operating System**: Linux (Ubuntu 20.04+ recommended), or compatible Unix-like system
-- **Rust**: Version 1.70+ (installed via rustup)
-- **Dependencies**:
-  - OpenSSL development libraries
-  - TPM 2.0 libraries (for TPM mode, optional)
-  - Git for repository access
-
-### Network Requirements
-- Access to telemetry sources (ICCP/PMU/SCADA feeds)
-- Outbound internet for dependency downloads (during setup)
-- Secure communication channels for log transmission
-
----
-
-## Installation and Setup
-
-### 1. Clone the Repository
 ```bash
-git clone https://github.com/obienova/M.V.R.ESPRINT1.git
-cd M.V.R.ESPRINT1
+make pilot
+make full
+make pilot-scenario
+make full-scenario
+make precompile-full
 ```
 
-### 2. Install Rust
+### Build
+
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source $HOME/.cargo/env
+cargo build --bin sced_chain --bin verifier --bin demo --bin formal_proof_harness --bin dashboard --bin pilot_demo --bin scenario_runner
+cargo build --bins
 ```
 
-### 3. Install System Dependencies
-```bash
-# Ubuntu/Debian
-sudo apt update
-sudo apt install build-essential pkg-config libssl-dev tpm2-tools tpm2-openssl
+### Test
 
-# For TPM support (optional)
-sudo apt install tpm2-abrmd
-```
-
-### 4. Build the Project
-```bash
-cargo build --release
-```
-
-### 5. Verify Installation
 ```bash
 cargo test --lib
-cargo run --bin zero_state_sanity
+cargo test --test adversarial_validation
+cargo test --all
 ```
 
----
+### SCED Verification
 
-## Configuration
-
-### Environment Variables
-Set the following environment variables for operation:
-
-- `SIGNER_MODE`: `simulation` (default) or `tpm` (requires TPM hardware)
-- `LOG_LEVEL`: `info` (default), `debug`, or `error`
-- `TELEMETRY_ENDPOINT`: URL or path to telemetry source (e.g., `tcp://scada.example.com:2404`)
-
-### Configuration Files
-- `Cargo.toml`: Feature flags (e.g., enable `tpm` feature for hardware signing)
-- No additional config files required for pilot mode
-
-### Feature Flags
-- Default: Simulation mode with software signing
-- `tpm`: Enable TPM-backed signing (requires hardware)
-
-Build with TPM support:
 ```bash
-cargo build --release --features tpm
+cargo run --bin sced_chain -- verify-full test_vectors/ERCOT_SCED_PHYSICS_20260322_PROXY.csv
+cargo run --bin sced_chain -- decompose <zip_or_folder>
 ```
 
----
+### SCED Benchmark
 
-## Operation
+```bash
+cargo run --bin sced_chain -- benchmark test_vectors/ERCOT_SCED_PHYSICS_20260322_PROXY.csv
+```
 
-### Starting the System
+Observed release benchmark snapshot on 2026-03-26:
 
-#### Pilot Demo Mode
+- `records_total=1152`
+- `intervals=288`
+- `runtime_ms=75`
+- `throughput_rps=15303`
+- `throughput_intervals_per_sec=3826`
+
+### Phase III Prediction Schema
+
+```bash
+cargo run --bin sced_chain -- predict --sample
+cargo run --bin sced_chain -- predict --validate <prediction.json>
+```
+
+### Demo
+
+```bash
+cargo run --bin demo -- normal
+```
+
+### Dashboard
+
+```bash
+cargo run --bin dashboard
+```
+
+### Pilot Demo
+
 ```bash
 cargo run --bin pilot_demo
 ```
-This generates sample attestation records and verifies the chain.
 
-#### Production Runtime
+Outputs:
+
+- [`pilot_attestation_log.json`](/workspaces/M.V.R.ESPRINT1/pilot_attestation_log.json)
+- [`pilot_audit_ticket.md`](/workspaces/M.V.R.ESPRINT1/pilot_audit_ticket.md)
+
+### Scenario Runner
+
 ```bash
-SIGNER_MODE=simulation cargo run --bin sovereign_runtime
+cargo run --bin scenario_runner -- --mode pilot
+cargo run --bin scenario_runner -- --mode pilot --quiet
+cargo run --bin scenario_runner -- --mode full --json
 ```
 
-#### With TPM
+Outputs:
+
+- [`scenario_attestation_log.json`](/workspaces/M.V.R.ESPRINT1/scenario_attestation_log.json)
+- [`scenario_audit_ticket.md`](/workspaces/M.V.R.ESPRINT1/scenario_audit_ticket.md)
+
+Flags:
+
+- `--quiet`: minimal stdout
+- `--verbose`: includes stage telemetry
+- `--json`: emits machine-readable summary to stdout
+
+### ISE Runner
+
 ```bash
-SIGNER_MODE=tpm cargo run --bin sovereign_runtime --features tpm
+cargo run --bin ise_runner -- --mode accelerated --factor 60
+cargo run --bin ise_runner -- --mode realtime
+cargo run --bin ise_runner -- --mode step --inject load-spike --inject constraint-stress
 ```
 
-### Normal Operation Flow
-1. System starts in shadow mode
-2. Consumes telemetry from configured sources
-3. Generates deterministic traces and attestations
-4. Logs are written to `attestation_log.jsonl`
-5. Optional: Run verifier for integrity checks
+Outputs:
 
-### Stopping the System
-- Use `Ctrl+C` to gracefully shut down
-- System will complete current attestation cycle before exiting
+- [`ise_performance_report.json`](/workspaces/M.V.R.ESPRINT1/ise_performance_report.json)
+- [`ise_performance_report.md`](/workspaces/M.V.R.ESPRINT1/ise_performance_report.md)
+- [`ise_scenario_timeline_log.jsonl`](/workspaces/M.V.R.ESPRINT1/ise_scenario_timeline_log.jsonl)
 
----
+Determinism guardrails:
 
-## Monitoring and Logging
+- the ISE mutates scenario inputs only once before execution by preparing a temporary scenario variant
+- replay runs against fixed snapshots only; no live mid-run mutation is allowed
+- replay scheduling is deterministic and uses no randomness
+- ICCP and external-model consistency checks still fail closed inside the kernel path
 
-### Log Files
-- `attestation_log.jsonl`: Append-only attestation records
-- Standard output: Runtime logs (configurable via `LOG_LEVEL`)
+### Kernel Wrappers
 
-### Monitoring Commands
+- [`scripts/boot_pilot.sh`](/workspaces/M.V.R.ESPRINT1/scripts/boot_pilot.sh)
+- [`scripts/boot_full.sh`](/workspaces/M.V.R.ESPRINT1/scripts/boot_full.sh)
+- [`Makefile`](/workspaces/M.V.R.ESPRINT1/Makefile)
+
+Behavior:
+
+- `make pilot` runs the fail-closed pilot boot sequence
+- `make full` runs the fail-closed full-mode benchmark sequence
+- `make precompile-full` builds the release `sced_chain` binary required by full mode
+- `make pilot-scenario` verifies workspace inputs, runs the scenario, emits the audit ticket, and confirms deterministic validation
+- `make full-scenario` runs the release binaries, logs under [`logs/full/`](/workspaces/M.V.R.ESPRINT1/logs/full), and appends [`performance_ledger.json`](/workspaces/M.V.R.ESPRINT1/performance_ledger.json)
+
+### Formal Harness
+
 ```bash
-# Check system status
-cargo run --bin zero_state_sanity
-
-# Verify recent attestations
-cargo run --bin verifier attestation_log.jsonl
-
-# Run grid stability simulation
-cargo run --bin tlbss_grid_stability
+cargo run --bin formal_proof_harness
 ```
 
-### Key Metrics to Monitor
-- Attestation generation rate (should match telemetry frequency)
-- Chain verification success (100% expected)
-- System resource usage (CPU, memory)
-- Telemetry ingestion errors
+## Workspace Status
 
----
+The wider workspace has now been explicitly re-verified:
 
-## Maintenance
+- `cargo check` passes
+- `cargo test --no-run` passes
+- `cargo build --bins` passes
+- `cargo test --all` passes
 
-### Regular Tasks
-- **Daily**: Verify attestation chain integrity
-- **Weekly**: Run full test suite (`cargo test`)
-- **Monthly**: Update dependencies (`cargo update`)
-- **Quarterly**: Review and rotate logs
+## SCED Operations
 
-### Log Rotation
-Implement log rotation to prevent disk space issues:
+### Input Files
+
+Working vectors live in:
+
+- [`test_vectors/`](/workspaces/M.V.R.ESPRINT1/test_vectors)
+
+Recommended full-day validation vector:
+
+- [`test_vectors/ERCOT_SCED_PHYSICS_20260322_PROXY.csv`](/workspaces/M.V.R.ESPRINT1/test_vectors/ERCOT_SCED_PHYSICS_20260322_PROXY.csv)
+
+### Modes
+
+`verify`
+
+- rebuilds the chain
+- optionally binds to an expected final hash
+
+`verify-full`
+
+- verifies the file
+- emits events
+- performs internal 3x determinism replay
+
+`benchmark`
+
+- runs a passing verification path
+- emits throughput and runtime metrics
+- on the current proxy full-day vector: `1152` records, `288` intervals, `1165 ms`, `989 records/s`
+
+`verify-against`
+
+- compares the input chain against a reference CSV-derived chain
+
+`decompose`
+
+- ingests ERCOT disclosure folders or ZIPs
+- emits deterministic constraint-level congestion attribution
+- writes a decomposition CSV artifact
+
+`predict`
+
+- emits a canonical Phase III prediction sample
+- validates prediction JSON against the raw nodal identity contract
+
+## Verifier Operations
+
+`verifier` expects a JSON file containing a serialized `Vec<AttestationRecord>`.
+
+Example:
+
 ```bash
-# Example: Rotate logs monthly
-logrotate -f /etc/logrotate.d/mvr_esprint1
+cargo run --bin verifier -- <attestation_log.json>
 ```
 
-### Backup
-- Backup `attestation_log.jsonl` regularly
-- Store backups in secure, tamper-evident storage
-- Retain logs for regulatory compliance periods
+It will fail if you pass:
 
-### Updates
-```bash
-git pull
-cargo build --release
-# Test before deploying
-cargo run --bin rust_simulation_harness
-```
+- plain text logs
+- SCED CSV files
+- JSON with a different schema
 
----
+Current signature path:
+
+- shared Ed25519-backed verification for simulation evidence
+- deterministic `mock` attestation is the default runtime path
+- TPM-backed mode is available only when built with the `tpm` feature
 
 ## Troubleshooting
 
-### Common Issues
+### `cargo build --bins` fails
 
-#### Compilation Errors
-- Ensure Rust 1.70+ is installed
-- Check system dependencies: `pkg-config --libs openssl`
-- For TPM: Verify TPM hardware and `tpm2-abrmd` service
+This command is currently green in the verified tree. A new failure likely indicates a fresh regression or local environment issue.
 
-#### Runtime Errors
-- **TPM Unavailable**: Switch to simulation mode or check TPM status
-- **Telemetry Connection Failed**: Verify network and endpoint configuration
-- **Chain Verification Failed**: Check for log corruption or tampering
+### `cargo test --all` fails
 
-#### Performance Issues
-- High CPU: Reduce log level or optimize telemetry processing
-- Memory usage: Monitor for leaks; restart if necessary
-- Disk space: Implement log rotation
+This command is currently green in the verified tree. A new failure likely indicates a fresh regression or local environment issue.
 
-### Diagnostic Commands
-```bash
-# Check TPM status
-tpm2_getcap properties-fixed
+### `verifier` says JSON parse failed
 
-# Test telemetry connection
-telnet <telemetry_host> <port>
+Check that the input file is a JSON array of attestation records, not a text log.
 
-# Validate logs
-cargo run --bin verifier <log_file>
-```
+## Operational Recommendations
 
-### Escalation
-For unresolved issues:
-1. Check repository issues on GitHub
-2. Review SovereignTrace logs for error details
-3. Contact support (see Contact Information)
-
----
-
-## Safety and Compliance
-
-### Safety Considerations
-- System operates in shadow mode only (no control authority)
-- All operations are deterministic and auditable
-- No unsafe code permitted (`#![deny(unsafe_code)]`)
-
-### Regulatory Compliance
-- Designed for NERC BAL-001/002 compliance
-- CIP-007/010 integrity protection
-- Audit trails suitable for regulatory submission
-
-### Security
-- Cryptographic signing of all attestations
-- Tamper-evident log chains
-- No external network dependencies in runtime
-- Secure boot verification available
-
----
-
-## Contact Information
-
-**Developer**: OBINNA JAMES EJIOFOR
-**Email**: [contact information]
-**Repository**: https://github.com/obienova/M.V.R.ESPRINT1
-**Issues**: https://github.com/obienova/M.V.R.ESPRINT1/issues
-
-For pilot deployment inquiries, please reference the PILOT_BRIEF.md document.
-
----
-
-*This manual is for pilot evaluation only. Production deployment requires additional validation and certification.*
+- Prefer the SCED path for production-style validation work in this repo.
+- Keep generated vectors under `test_vectors/`.
+- Rebuild the proxy dataset with [`scripts/generate_proxy_dataset.py`](/workspaces/M.V.R.ESPRINT1/scripts/generate_proxy_dataset.py) if the benchmark vector needs regeneration.
+- Use the generated Markdown audit artifact when you need a printable evidence package for operators or reviewers.
+- Treat the evidence stack as deterministic software-backed by default unless you explicitly enable TPM mode.
+- Expect the scenario wrappers to fail closed on missing datasets, malformed inputs, missing release binaries, or invalid attestation output.
+- Treat the ISE as a deterministic integration harness, not a live simulator; if you need new stresses, add them as pre-run injections rather than runtime mutation.
