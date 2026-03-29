@@ -59,3 +59,6 @@ pub mod sovereign_bus;
 pub mod ir_backends;
 pub mod crypto_pipeline;
 pub mod sced_offer_chain;
+pub mod sprint1;
+pub mod mvre;
+pub mod guardian;
