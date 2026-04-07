@@ -192,6 +192,168 @@ pub fn rrs_thermal_cap_ok(rrs_award_mw: f64, hsl_mw: f64) -> bool {
     rrs_award_mw <= (0.20 * hsl_mw)
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TelemetryClass {
+    Scada,
+    Pmu,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct TelemetryTimestamp {
+    pub source_timestamp_ms_utc: u64,
+    pub arrival_timestamp_ms_utc: u64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SnapshotAlignmentConfig {
+    pub scada_skew_window_ms: u64,
+    pub pmu_skew_window_ms: u64,
+    pub scada_snapshot_width_ms: u64,
+}
+
+impl Default for SnapshotAlignmentConfig {
+    fn default() -> Self {
+        Self {
+            scada_skew_window_ms: 2_000,
+            pmu_skew_window_ms: 1,
+            scada_snapshot_width_ms: 2_000,
+        }
+    }
+}
+
+pub fn effective_timestamp_ms(class: TelemetryClass, ts: TelemetryTimestamp) -> u64 {
+    match class {
+        TelemetryClass::Scada => ts.arrival_timestamp_ms_utc,
+        TelemetryClass::Pmu => ts.source_timestamp_ms_utc,
+    }
+}
+
+pub fn within_snapshot_skew_window(
+    class: TelemetryClass,
+    a: TelemetryTimestamp,
+    b: TelemetryTimestamp,
+    cfg: SnapshotAlignmentConfig,
+) -> bool {
+    let at = effective_timestamp_ms(class, a) as i128;
+    let bt = effective_timestamp_ms(class, b) as i128;
+    let skew = (at - bt).unsigned_abs() as u64;
+    let limit = match class {
+        TelemetryClass::Scada => cfg.scada_skew_window_ms,
+        TelemetryClass::Pmu => cfg.pmu_skew_window_ms,
+    };
+    skew <= limit
+}
+
+pub fn scada_snapshot_bucket_start_ms(arrival_timestamp_ms_utc: u64, cfg: SnapshotAlignmentConfig) -> u64 {
+    let width = cfg.scada_snapshot_width_ms.max(1);
+    (arrival_timestamp_ms_utc / width) * width
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct DispatchTieOffer {
+    pub resource_id: String,
+    pub offer_price_per_mwh: f64,
+    pub available_mw: f64,
+    pub is_online: bool,
+    pub low_sustained_limit_mw: f64,
+    pub mitigated_offer_cap_per_mwh: Option<f64>,
+    pub reserve_locked_mw: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct DispatchAllocation {
+    pub resource_id: String,
+    pub mw: f64,
+}
+
+fn round6(v: f64) -> f64 {
+    (v * 1_000_000.0).round() / 1_000_000.0
+}
+
+pub fn effective_offer_price(offer: &DispatchTieOffer) -> f64 {
+    match offer.mitigated_offer_cap_per_mwh {
+        Some(moc) => offer.offer_price_per_mwh.min(moc),
+        None => offer.offer_price_per_mwh,
+    }
+}
+
+pub fn apply_deterministic_epsilon(order: &mut [DispatchTieOffer], epsilon: f64) -> Vec<(String, f64)> {
+    order.sort_by(|a, b| a.resource_id.cmp(&b.resource_id));
+    order
+        .iter()
+        .enumerate()
+        .map(|(i, o)| {
+            let adjusted = effective_offer_price(o) + (epsilon * i as f64);
+            (o.resource_id.clone(), round6(adjusted))
+        })
+        .collect()
+}
+
+pub fn allocate_pro_rata_dispatch(required_mw: f64, offers: &[DispatchTieOffer]) -> Vec<DispatchAllocation> {
+    if required_mw <= 0.0 || offers.is_empty() {
+        return Vec::new();
+    }
+
+    let running: Vec<&DispatchTieOffer> = offers
+        .iter()
+        .filter(|o| o.is_online && o.available_mw > 0.0)
+        .collect();
+
+    let mut eligible: Vec<&DispatchTieOffer> = offers.iter().filter(|o| o.available_mw > 0.0).collect();
+    let running_total: f64 = running.iter().map(|o| o.available_mw).sum();
+
+    // QSGR-style safeguard: avoid forcing offline starts for tiny requirements that sit below LSL.
+    if !running.is_empty()
+        && running_total >= required_mw
+        && offers
+            .iter()
+            .any(|o| !o.is_online && required_mw < o.low_sustained_limit_mw)
+    {
+        eligible = running;
+    }
+
+    // RTC tie behavior: keep reserve-capable units available by reducing energy room.
+    let weights: Vec<(String, f64)> = eligible
+        .iter()
+        .map(|o| {
+            let energy_room = (o.available_mw - o.reserve_locked_mw).max(0.0);
+            (o.resource_id.clone(), energy_room)
+        })
+        .collect();
+
+    let total_weight: f64 = weights.iter().map(|(_, w)| *w).sum();
+    if total_weight <= 0.0 {
+        return Vec::new();
+    }
+
+    let mut allocations: Vec<DispatchAllocation> = weights
+        .iter()
+        .map(|(id, w)| DispatchAllocation {
+            resource_id: id.clone(),
+            mw: round6(required_mw * (*w / total_weight)),
+        })
+        .collect();
+
+    // Deterministic residue assignment by lexical resource ID.
+    let allocated: f64 = allocations.iter().map(|a| a.mw).sum();
+    let mut residue = round6(required_mw - allocated);
+    allocations.sort_by(|a, b| a.resource_id.cmp(&b.resource_id));
+    for a in &mut allocations {
+        if residue <= 0.0 {
+            break;
+        }
+        let bump = residue.min(0.000001);
+        a.mw = round6(a.mw + bump);
+        residue = round6(residue - bump);
+    }
+
+    allocations
+}
+
+pub fn allocate_pro_rata_curtailment(required_curtailment_mw: f64, offers: &[DispatchTieOffer]) -> Vec<DispatchAllocation> {
+    allocate_pro_rata_dispatch(required_curtailment_mw.max(0.0), offers)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -279,5 +441,157 @@ mod tests {
     fn rrs_thermal_cap_enforced() {
         assert!(rrs_thermal_cap_ok(20.0, 100.0));
         assert!(!rrs_thermal_cap_ok(21.0, 100.0));
+    }
+
+    #[test]
+    fn scada_uses_arrival_time_pmu_uses_source_time() {
+        let ts = TelemetryTimestamp {
+            source_timestamp_ms_utc: 100,
+            arrival_timestamp_ms_utc: 2_000,
+        };
+        assert_eq!(effective_timestamp_ms(TelemetryClass::Scada, ts), 2_000);
+        assert_eq!(effective_timestamp_ms(TelemetryClass::Pmu, ts), 100);
+    }
+
+    #[test]
+    fn snapshot_skew_windows_follow_scada_and_pmu_assumptions() {
+        let cfg = SnapshotAlignmentConfig::default();
+        let a = TelemetryTimestamp {
+            source_timestamp_ms_utc: 1_000,
+            arrival_timestamp_ms_utc: 10_000,
+        };
+        let b = TelemetryTimestamp {
+            source_timestamp_ms_utc: 1_001,
+            arrival_timestamp_ms_utc: 11_999,
+        };
+        assert!(within_snapshot_skew_window(TelemetryClass::Scada, a, b, cfg));
+        assert!(within_snapshot_skew_window(TelemetryClass::Pmu, a, b, cfg));
+    }
+
+    #[test]
+    fn scada_snapshot_bucket_is_two_seconds() {
+        let cfg = SnapshotAlignmentConfig::default();
+        assert_eq!(scada_snapshot_bucket_start_ms(4_001, cfg), 4_000);
+        assert_eq!(scada_snapshot_bucket_start_ms(5_999, cfg), 4_000);
+    }
+
+    #[test]
+    fn mitigated_offer_cap_and_epsilon_are_deterministic() {
+        let mut offers = vec![
+            DispatchTieOffer {
+                resource_id: "UNIT_B".to_string(),
+                offer_price_per_mwh: 30.0,
+                available_mw: 20.0,
+                is_online: true,
+                low_sustained_limit_mw: 10.0,
+                mitigated_offer_cap_per_mwh: Some(25.0),
+                reserve_locked_mw: 0.0,
+            },
+            DispatchTieOffer {
+                resource_id: "UNIT_A".to_string(),
+                offer_price_per_mwh: 30.0,
+                available_mw: 20.0,
+                is_online: true,
+                low_sustained_limit_mw: 10.0,
+                mitigated_offer_cap_per_mwh: Some(25.0),
+                reserve_locked_mw: 0.0,
+            },
+        ];
+        let adjusted = apply_deterministic_epsilon(&mut offers, 0.0001);
+        assert_eq!(adjusted[0], ("UNIT_A".to_string(), 25.0));
+        assert_eq!(adjusted[1], ("UNIT_B".to_string(), 25.0001));
+    }
+
+    #[test]
+    fn pro_rata_dispatch_allocates_by_available_room() {
+        let offers = vec![
+            DispatchTieOffer {
+                resource_id: "U1".to_string(),
+                offer_price_per_mwh: 20.0,
+                available_mw: 20.0,
+                is_online: true,
+                low_sustained_limit_mw: 10.0,
+                mitigated_offer_cap_per_mwh: None,
+                reserve_locked_mw: 0.0,
+            },
+            DispatchTieOffer {
+                resource_id: "U2".to_string(),
+                offer_price_per_mwh: 20.0,
+                available_mw: 10.0,
+                is_online: true,
+                low_sustained_limit_mw: 10.0,
+                mitigated_offer_cap_per_mwh: None,
+                reserve_locked_mw: 0.0,
+            },
+        ];
+        let out = allocate_pro_rata_dispatch(15.0, &offers);
+        assert_eq!(out.len(), 2);
+        let u1 = out.iter().find(|a| a.resource_id == "U1").unwrap().mw;
+        let u2 = out.iter().find(|a| a.resource_id == "U2").unwrap().mw;
+        assert_eq!(round6(u1), 10.0);
+        assert_eq!(round6(u2), 5.0);
+    }
+
+    #[test]
+    fn qsgr_guard_avoids_offline_start_for_tiny_requirement() {
+        let offers = vec![
+            DispatchTieOffer {
+                resource_id: "ONLINE".to_string(),
+                offer_price_per_mwh: 20.0,
+                available_mw: 10.0,
+                is_online: true,
+                low_sustained_limit_mw: 5.0,
+                mitigated_offer_cap_per_mwh: None,
+                reserve_locked_mw: 0.0,
+            },
+            DispatchTieOffer {
+                resource_id: "OFFLINE_QSGR".to_string(),
+                offer_price_per_mwh: 20.0,
+                available_mw: 100.0,
+                is_online: false,
+                low_sustained_limit_mw: 50.0,
+                mitigated_offer_cap_per_mwh: None,
+                reserve_locked_mw: 0.0,
+            },
+        ];
+        let out = allocate_pro_rata_dispatch(1.0, &offers);
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].resource_id, "ONLINE");
+    }
+
+    #[test]
+    fn reserve_locked_room_changes_energy_tie_break_in_rtc_style() {
+        let offers = vec![
+            DispatchTieOffer {
+                resource_id: "RESERVE_HEAVY".to_string(),
+                offer_price_per_mwh: 20.0,
+                available_mw: 20.0,
+                is_online: true,
+                low_sustained_limit_mw: 5.0,
+                mitigated_offer_cap_per_mwh: None,
+                reserve_locked_mw: 10.0,
+            },
+            DispatchTieOffer {
+                resource_id: "ENERGY_FREE".to_string(),
+                offer_price_per_mwh: 20.0,
+                available_mw: 20.0,
+                is_online: true,
+                low_sustained_limit_mw: 5.0,
+                mitigated_offer_cap_per_mwh: None,
+                reserve_locked_mw: 0.0,
+            },
+        ];
+        let out = allocate_pro_rata_dispatch(15.0, &offers);
+        let heavy = out
+            .iter()
+            .find(|a| a.resource_id == "RESERVE_HEAVY")
+            .unwrap()
+            .mw;
+        let free = out
+            .iter()
+            .find(|a| a.resource_id == "ENERGY_FREE")
+            .unwrap()
+            .mw;
+        assert!(free > heavy);
     }
 }

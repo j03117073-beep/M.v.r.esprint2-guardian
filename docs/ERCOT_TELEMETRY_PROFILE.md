@@ -58,9 +58,22 @@ Reserve cap rule encoded for thermal RRS:
 
 - `RRS <= 20% * HSL`
 
+## Deterministic Tie-Break Policies Encoded
+
+- Economic ties at equal effective price are resolved with MW pro-rata allocation.
+- Effective offer price respects mitigation caps when present:
+  - `effective_price = min(offer_price, mitigated_offer_cap)`
+- Deterministic epsilon overlay is supported for oscillation prevention:
+  - lexical resource ordering with configurable epsilon increment.
+- QSGR-style safeguard:
+  - tiny dispatch needs do not force offline starts when online tied units can satisfy demand.
+- RTC-style reserve interaction:
+  - reserve-locked MW is removed from energy tie-break room before pro-rata allocation.
+- Transmission tie curtailment:
+  - pro-rata curtailment path is reused for equal-impact tie conditions.
+
 ## Source Files
 
 - `src/telemetry.rs`
 - `src/drivers/ptp_clock.rs`
 - `src/constraint_system.rs` (constraint evaluation context)
-
