@@ -48,8 +48,9 @@ fn run() -> Result<(), String> {
             println!("[INFO] verifier_start records=0");
             emit_json(&report)?;
             println!(
-                "[FAIL] code={} mismatch_index= key=",
-                report.errors[0].code.code_as_str()
+                "[FAIL] code={} mismatch_index= key={}",
+                report.errors[0].code.code_as_str(),
+                format_key(&report.errors[0].record_key)
             );
             return Ok(());
         }
@@ -80,11 +81,7 @@ fn run() -> Result<(), String> {
             .mismatch_index
             .map(|i| i.to_string())
             .unwrap_or_default();
-        let key = first
-            .record_key
-            .as_ref()
-            .map(format_key)
-            .unwrap_or_else(String::new);
+        let key = format_key(&first.record_key);
         println!(
             "[FAIL] code={} mismatch_index={} key={}",
             first.code.code_as_str(),
@@ -117,37 +114,62 @@ fn map_cli_parse_error(err: m_v_r_esprint1::sced_offer_chain::ParseError) -> m_v
         m_v_r_esprint1::sced_offer_chain::ParseError::CsvSchemaMismatch => VerifyError {
             code: VerifyCode::CsvSchemaMismatch,
             message: "CSV schema mismatch".to_string(),
-            record_key: None,
+            record_key: RecordKey {
+                scd_timestamp: String::new(),
+                repeat_hour_flag: false,
+                resource_name: String::new(),
+                offer_type: String::new(),
+            },
         },
         m_v_r_esprint1::sced_offer_chain::ParseError::MissingValue(field) => VerifyError {
             code: VerifyCode::CsvMalformed,
             message: format!("missing value for field '{field}'"),
-            record_key: None,
+            record_key: RecordKey {
+                scd_timestamp: String::new(),
+                repeat_hour_flag: false,
+                resource_name: String::new(),
+                offer_type: String::new(),
+            },
         },
         m_v_r_esprint1::sced_offer_chain::ParseError::InvalidBoolean(v) => VerifyError {
             code: VerifyCode::InvalidBoolean,
             message: format!("invalid boolean '{v}'"),
-            record_key: None,
+            record_key: RecordKey {
+                scd_timestamp: String::new(),
+                repeat_hour_flag: false,
+                resource_name: String::new(),
+                offer_type: String::new(),
+            },
         },
         m_v_r_esprint1::sced_offer_chain::ParseError::InvalidNumeric(field, v) => VerifyError {
             code: VerifyCode::InvalidNumeric,
             message: format!("invalid numeric field '{field}' with value '{v}'"),
-            record_key: None,
+            record_key: RecordKey {
+                scd_timestamp: String::new(),
+                repeat_hour_flag: false,
+                resource_name: String::new(),
+                offer_type: String::new(),
+            },
         },
         m_v_r_esprint1::sced_offer_chain::ParseError::DuplicatePrimaryKey(ts, rep, res, typ) => VerifyError {
             code: VerifyCode::DuplicatePk,
             message: "duplicate primary key detected".to_string(),
-            record_key: Some(RecordKey {
+            record_key: RecordKey {
                 scd_timestamp: ts,
                 repeat_hour_flag: rep,
                 resource_name: res,
                 offer_type: typ,
-            }),
+            },
         },
         m_v_r_esprint1::sced_offer_chain::ParseError::MalformedCsv(msg) => VerifyError {
             code: VerifyCode::CsvMalformed,
             message: msg,
-            record_key: None,
+            record_key: RecordKey {
+                scd_timestamp: String::new(),
+                repeat_hour_flag: false,
+                resource_name: String::new(),
+                offer_type: String::new(),
+            },
         },
     }
 }

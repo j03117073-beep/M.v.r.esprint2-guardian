@@ -1,13 +1,29 @@
-# Build artifacts
-/target/
+# Downloaded and generated local datasets
+data/*.csv
+data/*.zip
+data/*.pdf
+data/*.doc
+data/*.exe
+data/*.txt
+data/ercot_candy_report.md
 
-# Local tooling
-/.codex/
-/.vscode/
+# Generated artifact outputs
+artifacts/hrlyresoutcapnp3233/
+artifacts/mora_unpacked/
+artifacts/xlsx_unpacked/
+artifacts/*tmp.zip
+artifacts/mora_june2026_resource_details.csv
+artifacts/sample_sced.csv
 
-# Logs
-*.log
+# Local source reference documents kept outside version control
+CIM10_to_CIM16_Attribute_Mapping_02132026.xlsx
+ERCOT-DER-Inclusion-in-Transmission-System-Models.pdf
+MORA_June2026.xlsx
+GUARDIAN_DISTRIBUTED_DOC.md
+MVRE_SPRINT1_GUARDIAN_DISTRIBUTED_ARCHITECTURE.md
 
-# OS
-.DS_Store
-Thumbs.db
+# Local build/editor/runtime state
+target/
+pilot_attestation_log.json
+.codex/
+.vscode/

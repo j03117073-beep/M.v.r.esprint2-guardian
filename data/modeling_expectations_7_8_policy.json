@@ -1,0 +1,58 @@
+{
+  "document": {
+    "title": "Network Operations Modeling Expectations for TSPs, REs, and QSEs",
+    "version": "7.8",
+    "source_file": "data/Modeling_Expectations_7.8.doc",
+    "extracted_text_file": "artifacts/Modeling_Expectations_7.8.txt"
+  },
+  "submission_channels": [
+    {
+      "participant": "TSP",
+      "domain": "network_model_change",
+      "required_channel": "NOMCR",
+      "source_excerpt": "Transmission Service Providers (TSPs) will submit changes directly into the NMMS using NOMCRs."
+    },
+    {
+      "participant": "RE",
+      "domain": "network_model_change",
+      "required_channel": "RARF",
+      "source_excerpt": "Resource Entities (REs) will submit their model changes in the Resource Asset Registration Form (RARF)."
+    },
+    {
+      "participant": "QSE",
+      "domain": "telemetry_change",
+      "required_channel": "SIEBEL_SR",
+      "source_excerpt": "Qualified Scheduling Entities (QSEs) will submit telemetry changes ... using service requests (SRs) in Siebel."
+    }
+  ],
+  "rarf_rules": {
+    "failed_validation_rejected": true,
+    "source_excerpt": "RARF submissions failing to pass RARF validation will be rejected."
+  },
+  "interim_update_rules": {
+    "accepted_reasons": [
+      "unintentional_modeling_inconsistency",
+      "system_restoration_after_storm",
+      "impedance_or_rating_correction"
+    ],
+    "discretionary_acceptance": true,
+    "source_excerpt": "NOMCRs/CAMRs outside normal timelines are Interim Updates and included if needed for specific corrections/restoration; at ERCOT discretion."
+  },
+  "contingency_rules": {
+    "contingency_component_flag_managed_by_submitter": true,
+    "source_excerpt": "MP is expected to manage the contingency component flag such that the correct contingency can be built."
+  },
+  "relay_loadability_rules": {
+    "applies_to_equipment": [
+      "line",
+      "series_compensator",
+      "power_transformer"
+    ],
+    "co_owned_uses_most_conservative_value": true,
+    "not_monitored_by_relay_sentinel_value": 88888,
+    "validation": {
+      "must_be_greater_than_static_15_min": true,
+      "must_be_greater_than_dynamic_20f_15_min_if_present": true
+    }
+  }
+}

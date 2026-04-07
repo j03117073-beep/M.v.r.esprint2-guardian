@@ -31,6 +31,7 @@ pub mod zero_state;
 
 // new supervisory kernel components
 pub mod ai_ingestion_buffer;
+pub mod capacity_available_to_sced;
 pub mod kernel;
 pub mod setpoint_guard;
 pub mod simulation;
@@ -40,6 +41,7 @@ pub mod audit_guardian;
 pub mod deployment_manifest;
 pub mod grid_code_templates;
 pub mod hal_output;
+pub mod hrly_res_out_cap;
 pub mod interface_discovery;
 pub mod operator_interface;
 pub mod protocol_drivers;
@@ -58,6 +60,11 @@ pub mod ir_codegen;
 pub mod sovereign_bus;
 pub mod ir_backends;
 pub mod crypto_pipeline;
+pub mod cim_mapping_data;
+pub mod cim_mapping_rules;
+pub mod cim_mapping_transform;
+pub mod mora_ingestion;
+pub mod modeling_expectations_policy;
 pub mod sced_offer_chain;
 pub mod sprint1;
 pub mod mvre;

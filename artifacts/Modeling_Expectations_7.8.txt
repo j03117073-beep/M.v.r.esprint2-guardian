@@ -1,0 +1,661 @@
+
+2705 West Lake Drive
+Taylor, Texas 76574
+
+
+Network Operations Modeling Expectations for TSPs, REs, and QSEs.
+
+Version 7.8
+
+
+
+
+
+
+
+
+
+Network Modeling
+2/04/2020
+
+
+Revision History
+
+RevisionCommentsDateAuthor1.0Initial Version5/6/2010D.W. Rickerson1.1Trefny, Thompson, Hoover comments included5/10/2010D.W. Rickerson1.11Incorporated additional Trefny comments5/11/2010D.W. Rickerson1.12Incorporated Rasberry comments 5/24/2010D.W. Rickerson1.13Interim Update definition update6/3/2010D.W. Rickerson2.0Interim Update process definitions7/8/2010D.W. Rickerson2.1Outage Coordination edits7/9/2010D.W. Rickerson2.12SPS and RAP edits7/23/2010Chad Thompson2.13Approval to Energize Additions7/23/2010Bill Blevins3.0Supplemental database load and pseudo equipment edits7/26/2010D.W. Rickerson4.0Consideration and incorporation of Market Participant Comments from 8/4/20108/8/2010D.W. Rickerson4.1Revision of Approval to Energize Section8/13/2010Bill Blevins4.11Revision of the Approval to Energize Section8/13/2010D.W. Rickerson5.0Revisions from 8-17 NDSGW meeting and subsequent discussions about the A2E process and modeling examples8/27/2010D.W. Rickerson5.1Revision from 8/31 NATF Meeting to include "and ROS"8/31/2010D.W. Rickerson6.0Revisions to the A2E process, removal of pseudo references, changes to the levels of validation, incorporation of the new timelines for summer10/18/10D.W. Rickerson6.1Revision to the Supplemental load paragraph10/19NDSWG7.0Change to Dynamic Ratings paragraph, new section on DPC, update to the A2E process for relocated equipment.1/17/2011D.W. Rickerson, Trish Miller7.1Broaden the definition of ICCP changes to include new names and provide clarification on relocated equipment1/18/2011NDSWG7.2Add two items:  1) Approval to Energize process for Model Corrections showing existing physical energized equipment.   2) Modeling Example        e)	New Tapped Station or Switching Station with an unknown project energization date.  
+NPRR146 updates.  4/19/2011NDSWG7.3Include section on modeling contingency components in NMMS for use by the MM Loader.6/15/2011C. Thompson7.4Timing for Contingency Flags9/14/2011W Rickerson7.5Further Modification of Contingency Flags and updates to ICCP data object names, level 2,3,and 4 definitions, and LMP verification definition, 
+10/15/2011W Rickerson
+T Miller7.6* Updates to Data Submission Guidelines for Network Model Changes section.
+* Updates to Interim Updates section.
+* Updates to Model Loads section.
+* Modification to section IX.10/03/2019T  Miller
+M. de la Garza7.7Added Relay Loadability section and modified DPC section.2/4/2020M. de la Garza
+S. Solis7.8Updated the following sections:
+* Contingency
+* Relay Loadability Rating5/19/2020M. de la Garza
+
+
+Network Operations Modeling Expectations for TSPs, REs, and QSEs.	1
+I.	Overview	7
+II.	Data Submission Guidelines for Network Model Changes	7
+A.	NOMCR submissions	7
+1.	Timeline for RARF submissions	7
+B.	Interim Updates	8
+1.	Guideline Definition	9
+2.	Data Submissions not Subject to the Interim Update rules include:	12
+3.	Downstream Production Change (DPC)	12
+C.	Ownership	14
+D.	Operatorship	14
+III.	Production Loads (PL)	15
+A.	Frequency	15
+B.	PL Types	15
+1.	Scheduled PLs	15
+2.	Emergency Loads	15
+C.	Production Load Content	16
+D.	Scheduled Production Load Time-of-Day	16
+E.	ERCOT discretion for Emergency Loads	16
+1.	Emergency Loads due to Unintentional Modeling Errors	16
+2.	Emergency Loads due to Safety or System Restoration Conditions	16
+3.	Emergency Loads Necessary to Manage Recurring Congestion	17
+IV.	NOMCR and Model Validation Process	18
+A.	NOMCR Integration into Models	18
+V.	Approval to Energize Process	20
+VI.	Modeling Equipment Prior to Field-Energize Date	23
+A.	Use of the ERCOT Outage Scheduler	23
+1.	Planned outages	23
+2.	Forced outages	23
+3.	Coordinating Model and Outage Scheduler Entries	23
+VII.	Retiring Equipment	23
+VIII.	General Modeling Principles for Submitters	25
+A.	Modeling Examples	25
+IX.	Contingencies	38
+A.	Single Credible Contingencies	38
+B.	Double Element Contingencies	38
+C.	Special Modeling Considerations	39
+1.	ContingencyComponent Flag Setting	39
+2.	Special Modeling Examples	40
+D.	Manually Defined Contingencies	44
+E.	Contingency Maintenance Expectation	45
+1.	Manual Contingencies	45
+2.	Double Element Contingencies	46
+X.	Relay Loadability	49
+A.	Examples	50
+1.	Branch That Is Not Monitored By Relay	50
+2.	Line With Multiple Taps And Relaying On The Switching Station	51
+3.	Co-owned Line Both Owners Have Relay Loadability Value	51
+4.	Co-owned Line One Owner Does Not Have Relaying	51
+
+
+I. Overview
+ERCOT Protocols broadly delineate modeling requirements for different segments of the ERCOT market.  The information in this document is intended to more clearly define the expectations ERCOT has for market participants as they help to maintain the accuracy of the ERCOT Network Operations Model through the submission of model and outage data. 
+Modifications to this document by ERCOT will be documented and discussed with NDSWG and ROS prior to being finalized or implemented in ERCOT business processes.
+II. Data Submission Guidelines for Network Model Changes
+A. NOMCR submissions
+Changes to ERCOT's Network Model Management System (NMMS) database will be made using Network Operations Model Change Requests (NOMCRs).     Transmission Service Providers (TSPs) will submit changes directly into the NMMS using NOMCRs.   Resource Entities (REs) will submit their model changes in the Resource Asset Registration Form (RARF).   ERCOT will convert RARF submissions into NOMCRs.  Qualified Scheduling Entities (QSEs) will submit telemetry changes for the model using service requests (SRs) in Siebel.  ERCOT will convert the SRs into NOMCRs.  
+1. Timeline for RARF submissions
+RARF submissions by REs are subject to the same Protocol mandated deadlines as directly submitted TSP NOMCRs.1  RE RARF submissions may be considered Interim Updates if they fail to pass RARF validation prior to the normal timeline for data submission described in Protocols for NOMCRs.  RARF submissions failing to pass RARF validation will be rejected..
+Successful RARF submissions will be converted by ERCOT into NOMCRs and processed as part of the model update process and schedule required in the protocols.  REs will receive status updates for the NOMCRs representing their RARF data submissions.   If the RARF-NOMCR has significant problems passing the validation rules within the NMMS system it can be rejected even though it passed the validation for submission in the RARF hub.  In this event, the RE will be notified and required to submit a new RARF.  It is likely that this RARF resubmittal will not be able to meet the normal Protocol timeline for data submission.  REs wishing to avoid having data submissions potentially identified as Interim Updates should submit RARF information with enough notice to avoid this conflict.
+
+B. Interim Updates
+ERCOT expects requests to modify the Network Model to meet the Protocol timelines for Network Model changes2.  NOMCRs/CAMRs that are submitted outside of the normal timelines will be classified as Interim Updates and included in the Network Model if they are needed to correct unintentional modeling inconsistencies, are required for system restoration after a storm, are a correction to previously submitted impedances or ratings.  Interim Updates will be reported to the Public Utility Commission of Texas (PUCT) Staff and the Independent Market Monitor (IMM).3  
+
+Per Nodal Protocols4, Interim Updates will be incorporated in the Network Model at the discretion of ERCOT.  Many considerations will be made in determining the overall impact of the Interim update to the Network Operations model.  
+ERCOT will also critically evaluate other risk items such as system conditions, staffing, volume of requested changes, potential Protocol obligations, etc. prior to determining if the interim update will be accepted.
+
+Section II.B.2 contains information about data submissions not subject to Interim Updates.
+
+1. Guideline Definition
+The type and timing of the update will be considered when evaluating Interim Update requests.  In some cases, requestors may be required to change the NOMCR energization date (model ready date - see discussion in Section V) of the request so that the submittal falls within normal data submission guidelines.  In these cases, the update would no longer be classified as an Interim Update.
+
+In order to evaluate the impact an Interim Update will have on the Network Operations model, the request will first be classified according to when it was submitted.  This classification quantifies how much notice is provided for each request.  An Interim Update request that requires an Emergency Database Load will be more difficult to grant than a request that is only a few days past the normal submittal deadline.  Each interim request will be evaluated in light of risk items such as system conditions, staffing, volume of change requests, and potential Protocol obligations.  ERCOT will classify Interim Updates into four periods of time as illustrated below.
+
+
+
+
+Each Period is applicable to the submission timeline for the Target Month as defined in the Nodal Protocols Section 3.10.4.
+
+Period 1 requests would be submissions that miss the normal deadline by ten days or less.  At this point in the validation process 
+ERCOT is still processing the NOMCRs for the Target Month and has not completed the models that will be used in production.  
+Period 2 immediately follows Period 1 and ends 20 days prior to the database load date.  The length of Period 2 will vary for each model depending on when the model is scheduled to be put into production. During Period 2, the Operational Models undergo Initial Validation and are posted.  In addition, the information needed to build the CRR models is exported.
+Period 3 immediately follows Period 2 and ends when the model goes into production.    At this point in the validation process the final production models have been completed and are being validated for use in production.  Period 3 will typically be about 20 days in length.
+Period 4 immediately follows Period 3, beginning two days prior to the time the affected model is scheduled to be loaded into production.  Interim Updates allowed during Period 4 will require an Emergency Data Base load. 
+
+In addition to classifying updates by the period in which they are submitted, Interim Update requests will also be categorized by class.  The classes represent the impact the model change will have on both the market and reliability.  ERCOT will use four classifications to categorize Interim Update requests.  Appendix A contains examples of modeling request categories and how they might be classified.  The classes are described below.
+
+ Class 1 Interim Update requests that do not have to be modeled in production immediately due to either the nature of the change or the timing of the energization.
+
+Class 2 Interim Updates that need to be modeled in production immediately, but can be represented with a Downstream Production Change (DPC) changes.
+
+Class 3 Interim Updates that need to be modeled immediately and may require an Emergency Database Load.
+
+ERCOT will classify both the Period and Class of each Interim Update.    ERCOT will use the following chart as a basis for including the Interim Update into the model at the model ready time requested by the data submitter.
+
+ERCOT will consult with data submitters to reschedule or modify all interim updates that cannot be implemented as submitted.  In some cases in may be necessary for data submitters to modify some part of the interim update.  Rejection of the interim update will be considered a last step and be used only if other coordination efforts fail.
+
+ 
+
+2. Data Submissions not Subject to the Interim Update rules include: 
+a) ICCP data object names.
+Changes to Inter-Control Center Communication Protocol (ICCP) data object names may be submitted outside the normal timeline for NOMCRS.5   This includes SRs submitted into Siebel by QSEs to add or modify ICCP data names.  NOMCR modifications to the ICCP data object names can be made, provided the modifications occur in a separate NOMCR, no less than 20 days prior to the NOM Production load date as non-interim updates.     Modification of ICCP data object names may include their deletion from the model or the addition of entirely new object names.
+b) Dynamic rating changes for new and existing lines
+TSPs and REs will be able to dynamically rate a statically rated line or adjust previously submitted dynamic ratings in production within 48 hours.  ERCOT will approve or reject the new dynamic rating request within 24-hours of receipt and then implement the approved dynamic rating automatically within 24-hours of approval.   Model changes that dynamically rate lines will not be subject to Interim Update status.6  Ownership or Operatorship changes that are required in order to make dynamic rating changes described above can be included in the same NOMCR and will not be classified as Interim Updates.
+c) Remedial Action Plans and Special Messaging Scheme
+Remedial Action Plans (RAPs) and Special Messaging Schemes (SMSs) are able to be updated and implemented in the EMS immediately upon approval when necessary.  When a RAP or SMS is approved by ERCOT, ERCOT shall create a NOMCR to build the RAP or SMS into NMMS per its procedures.  
+d) Remedial Action Schemes
+ When a RAS proposal is approved by ERCOT, the TSP shall submit a NOMCR associating the ICCP data object names to a Generic Equipment that represents the RAS in the database (using a template).  The TSP shall also submit a CAMR, attaching to it the approved RAS documentation.  Upon receipt of the CAMR, ERCOT shall build the Remedial Action Schemes into NMMS.  Implementing the Remedial Action Scheme in the EMS and MMS can be done on the fly, however a PL is necessary in the EMS to tie in any telemetry to the Remedial Action Schemes.    A PL is required to reflect any Remedial Action Schemes modeling modifications in the EMS or in the MMS systems.
+3. Downstream Production Change (DPC)
+The DPC process allows ERCOT to make changes in the model currently being used in Production without loading a new model.  The DPC is limited the data types listed below.
+* Static Line ratings (not reported in Interim Update Report)
+o Changes to existing ratings
+o Change from static to dynamic provided the new ratings are based static temperature tables using ERCOT temperature telemetry.  (non-interim)
+o Cannot add a second owner 
+o Cannot add any new telemetry information
+* Dynamic Line ratings (non-Interim Update)
+o Changes to existing ratings 
+o Change from dynamic to static
+o Cannot add a second owner 
+o Cannot add any new telemetry information
+* Impedance (not reported in Interim Update Report)
+* Breaker and Switch status (Interim Update)
+o Subject to ERCOT discretion.  The preferred method is for the status to be submitted according to the 3.10.1 timeline with the appropriate outage entry in the ERCOT Outage Scheduler.  New telemetry information is not allowed.
+* Contingency Definitions (not reported in Interim Update Report)
+o Subject to ERCOT discretion.  Each request will be examined to determine feasibility.
+* RAP, SMS and RAS changes or additions (not reported in Interim Update Report)
+o Subject to ERCOT discretion.  Each request will be examined to determine feasibility.
+* Net Dependable and Reactive Capability (NDCRC) values (Interim Update)
+* Relay Loadability update < 125% of the Emergency Rating (2 Hour Rating) for all Transmission Facilities.
+Market Participants requesting changes to the model that are DPC-eligible should submit a NOMCR (or RARF) with the requested date and with comments in the description clearly requesting DPC consideration. Also an email sent to NetworkModelCoordinators@ercot.com  is needed so that model coordinators know to look for the DPC eligible NOMCR/CAMR.  Non-DPC data should not be included in the same NOMCR/CAMR.  A NOMCR/CAMR containing DPC data values does not have to have a Production Load date corresponding to the Production Load Schedule.  ERCOT will process DPC changes and put them in production as soon as practicable.  The Operators of Market Participants submitting DPC NOMCRs/CAMRs will be contacted by ERCOT Operations to verify the DPC data prior to it being implemented in production.  Inconsistencies in information from the respective Market Participant Operations group may result in the DPC NOMCR being placed in an "Additional Action Required" status and returned to the submitter.
+C. Ownership
+Typically, ownership of equipment in the NMMS system refers to the physical owner of the equipment.  Equipment may have multiple owners.  In some circumstances, ERCOT may be shown as the owner of equipment.
+D. Operatorship
+Typically, operatorship of equipment in the NMMS system refers to the entity that is responsible for the physical operation of that piece of equipment.  Equipment may have multiple operators.  REs and Private Use Networks (PUNs) owning transmission equipment must identify in the RARF the connecting TSP as an operator.  The TSP designation will be used by ERCOT to enable TSPs to enter outages on behalf of the RE for RE-owned transmission equipment.   
+
+III. Production Loads (PL) 
+A. Frequency 
+ERCOT will publish a schedule for PLs at least one year prior to the date for each PL on a rolling twelve month basis.  The normal periodicity for a new PL will be weekly.     If ERCOT needs to perform additional PLs, (see III.B.1 Supplemental PLs) ERCOT will update the schedule so that the additional dates are included.
+It is expected that TSPs and REs will, to the degree practical, coordinate the modeling of new and retiring equipment to correspond with scheduled model load dates.
+B.  PL Types
+1. Scheduled PLs  
+PLs are listed in the published model load schedule found on ERCOT.com.  These loads will normally correspond with the weekly load periodicity.  
+Supplement loads are Production loads that ERCOT, in-conjunction TSPs, REs, and QSEs, deems necessary in order to represent Network Model changes that cannot be modeled using a Production load periodicity of one week.  TSPs or REs submitting changes that may require a Supplemental load should coordinate this need with ERCOT prior to the data submission. Supplemental loads will be at the sole discretion of ERCOT and will not be scheduled for data submissions that are outside of the normal data submission deadlines.  When a Supplement load date is agreed upon, ERCOT will include that load in the published list of scheduled loads so that it can be used by other data submitters.   Supplemental loads will occur at 12:00 AM (0000) on the agreed upon date.
+2. Emergency Loads
+Emergency oads are loads requiring modifications to the Network Model that are determined to be necessary after the model has been placed into production.  Emergency loads will be scheduled at the discretion of ERCOT.  It is expected that some Emergency loads will be necessary to correct unintentional modeling inconsistencies or to model system restoration configurations after a storm or hurricane that cannot be replicated with outages.  Interim Updates requiring Emergency loads will be reported to the PUCT and IMM. If approved by ERCOT management, Emergency loads may be scheduled to facilitate modeling requests from REs or TSPs that require additional loads of the network model.  These Emergency loads will be at the discretion of ERCOT.7
+C. Production Load Content
+In general, the model for each period will be "back-loaded".  This means that the last day of the Production load period will be used for the snapshot of what is included in the model for the entire period.
+For example, if Production loads are scheduled for April 1st and April 8th then the model that is loaded on April 1st would normally include all model additions between April 1st and the end-of-day on April 7th that have been scheduled in NMMS.  A new piece of equipment that is scheduled to be energized on April 5th would be included in the April 1st model and be associated with an outage recorded in the Outage Scheduler that is scheduled to end on April 5th.  
+Changes to the model that are both introduced and retired within the life cycle of a single model will not be captured.  In these circumstances data submitters should coordinate with ERCOT for a Supplemental load. It is expected that TSPs and REs will use the published list of Production Loads to coordinate the modeling necessary to accurately represent expected construction schedules in the field.  However, if there are circumstances in which new equipment or configuration changes cannot be handled with planned outages a Supplemental load may be scheduled.  Supplemental loads will not be allowed to input new or revised transmission system connectivity that was not provided to ERCOT according to the submittal schedule required in the Protocols.  Pseudo modeling techniques may also be used in these circumstances.  It is expected that TSPs and REs will coordinate with ERCOT in order to find a feasible and efficient solution.
+D. Scheduled Production Load Time-of-Day
+Scheduled Production loads will normally occur at 12:00 AM (0000) on Tuesday, Wednesday or Thursday.  The day of the week for first-of-the-month loads will vary. All Scheduled Model loads will occur at 12:00 AM (0000) on the scheduled date for the load.
+E. ERCOT discretion for Emergency Loads
+ERCOT may implement an emergency load into the production environment if significant errors are uncovered after the model is loaded into production.  It will be at ERCOT's discretion to determine if an Emergency Load is necessary.  
+1. Emergency Loads due to Unintentional Modeling Errors
+Errors in the model may be found at any point in the model validation process.  ERCOT will coordinate with TSPs and REs in order to correct errors through the submission of revised data in NOMCRs.  A NOMCR update may be required even if an Emergency load is not made in the production environment.  Any NOMCR submission not meeting the normal submission timeline will be reported to the PUCT and IMM as an Interim Update.
+2. Emergency Loads due to Safety or System Restoration Conditions
+Emergency loads may be used to represent the system during emergency conditions.  In most cases, outages can be used to represent these conditions using the existing model.  However, ERCOT will coordinate with TSPs and REs in order to modify the model used in the production environment when necessary so that conditions in the field can be represented.   Adherence to the normal timelines for NOMCR submittal will still be required.  Any NOMCR submission not meeting this timeline will be reported to the PUCT and IMM as an interim update.
+3. Emergency Loads Necessary to Manage Recurring Congestion
+Emergency loads may be used to implement additional operational intervention or system monitoring (e.g. SPS, RAP, PCAP) to manage recurring congestion due to a recurring cause.  Any NOMCR submission associated with this type of issue will be reported to the PUCT and IMM as an Interim Update Describing the situation.
+
+
+
+IV. NOMCR and Model Validation Process
+A. NOMCR Integration into Models
+The modeling year is divided into twelve monthly periods in Protocols8. Each period canbe divided into weekly models.  There are three stages of validation that each model completes.  The overall model validation process is illustrated below for a hypothetical month of April.
+ 
+Individual NOMCRs are integrated into the appropriate model based on the Production Load date of each NOMCR.  ERCOT has 15 days from the receipt of the NOMCR to either approve or reject the submission.  It is during and prior to this NOMCR processing period that the first three levels of validation occur. ERCOT may request additional data be submitted during this 15-day period.   
+Level 1 Validation- The Level 1 Validation is performed automatically by the NMMS system whenever a NOMCR is submitted or resubmitted. The system will not accept submissions unless they pass the Level 1 Validation criteria. The Market Information System (MIS) Secure postings required by Nodal Protocols are achieved when the NOMCR is submitted. 
+
+Level 2 Validation-The Level 2 Validation is performed by the ERCOT Model Coordinator who performs a visual inspection and a data quality check to ensure that all data in a NOMCR has been provided in a coherent manner. 
+
+Level 3 Validation-The Level 3 Validation is performed by the ERCOT Model Tester, who will 
+validate the topology and ensure that the NOMCR is power flow ready.     
+
+After the NOMCR processing period, models are exported from the NMMS system according to the schedule for Scheduled Production loads published on the MIS.  These models are then subjected to the Initial Validation that is performed by ERCOT's Network Modeling Group.  Errors found during this validation period will require the submission of NOMCRs outside the normal timelines.    Responses to these types of requests will be categorized as Interim Updates.  It is during this validation period that ERCOT will apply level 4 Validation to the weekly models.
+
+Level 4 Validation-The Level 4 Validation is performed by the Nodal MT through the Areva Energy Management System (EMS) software. 
+The  MT will generate the AREVA save cases from the CIM/XML model using the AREVA CIM Importer, transfer it to AREVA EMS and validate that the NOMCRs under test that have the same Energization Date, will pass the AREVA validation, the powerflow, and the Contingency Analysis and will not corrupt any other portion of the model. 
+
+LMP Verification -LMP Verification  is performed by the Nodal MT and that involves initial LMP review for unexpected price changes before Market Validation.  
+
+
+ERCOT has approximately forty-five days from the NOMCR submission deadline until the validated models that will be used for the target month Network Operations Model are posted.  A period of Market Validation follows the public posting and is scheduled for approximately thirty days.  The CRR Auction corresponds with the completion of the Market Validation.
+The final phase of validation is facilitated by ERCOT's Energy and Market Management System (EMMS) group.  This is a final check before the model is placed into the production environment.  It will be necessary for this set of models to include all final ICCP object name changes9.  Validation of new or changes to ICCP telemetry are re-verified with the requestor in a point-to-point data check.  Failure to provide final ICCP data status could result in Emergency loads and notification to the PUCT and IMM.
+
+
+V. Approval to Energize Process
+
+In order to describe the "Approval to Energize Process" two concepts must be defined.  
+The first concept is the model-ready date which is found in the NMMS database and corresponds with the energization date associated with a NOMCR.  The model-ready date is the date that the new piece of equipment first appears in the ERCOT production environment.  The model-ready date should correspond with a Scheduled Production load date.  The model-ready date will also correspond with the date that new piece of equipment can initially be outaged in the ERCOT Outage Scheduler.   
+The second term is the date that corresponds with the field-energization of a piece of new equipment.  The field-energization date is the date the new equipment is energized in the field and is ready for normal service.  
+The energization of new equipment in the production environment will be preceded by two conditions.  First, the equipment must be modeled in NMMS in its normal state.  Secondly, a Planned Outage whose end time corresponds with the energization of the new equipment must be entered in the Outage Scheduler. Below is an example of how to use the outage scheduler to coordinate New Equipment Energization.
+Relocated equipment that is moved from one location to another, or is re-energized in a new configuration in the same substation should be processed through the same A2E process as new equipment.  The relocated equipment should be modeled as new equipment.
+
+
+
+To begin the Approval to Energize process ERCOT Operations will check the Outage Scheduler on a daily basis for equipment that is to be energized in seven days.  Equipment that is reported as ready for energization in seven days will be investigated in the current production model.  If no problems are anticipated, ERCOT will send an email to the owner of the equipment stating that the Approval to Energize is expected to occur and that no problems are anticipated.  
+If upon investigation of the current production model problems are found, then the email sent to the owner of the equipment will detail the problems and state that the Approval to Energize could be delayed if the problems are not fixed prior to the requested energization date.  Market Participants are required to contact ERCOT Operations when the problems are corrected.  When problems have been corrected, ERCOT will verify, and send an email that the new equipment can be energized as scheduled.
+In some cases the equipment that is to be energized may not be found in the current production model.   The operator will receive a notice stating the equipment to be energized in seven days is not in the current model and that the Approval to Energize may be delayed.   In these circumstances, the operator of the equipment is required to call ERCOT Operations and provide details as to when the equipment is expected to be loaded into the production environment.  With the appropriate communication, the energization date for the new equipment will not be delayed.  Once ERCOT has verified the equipment is in the production model and meets the Approval to Energize standards, an email will be sent to the owner of the new equipment confirming that it can be energized as scheduled.
+
+Once there are no problems anticipated, ERCOT Operations will contact the ERCOT Shift Supervisor and notify them of the expected energization dates and any other recommended actions.  Market Participants are required to request approval from the ERCOT Shift Supervisor for the activation of any new equipment or a relocated transmission facility that is connected to the ERCOT Transmission Grid, according to ERCOT Protocols Section 3.3.1. The request notification shall be by phone from the Market Participant to the ERCOT Shift Supervisor or designee on the day of the energization. If the ERCOT Shift Supervisor or his designee and ERCOT Operations are in agreement, then he/she will allow the equipment to be energized.
+Below is an example of the Approval to Energize process.
+
+
+
+
+VI. Modeling Equipment Prior to Field-Energize Date
+ERCOT expects the model-ready date to precede the field-energization date in all circumstances.  New equipment must be entered into the Network Operations Model in its normal operating state.  For example, a normally-closed breaker will be initially modeled as normally closed. 
+A. Use of the ERCOT Outage Scheduler
+The ERCOT Outage Scheduler will be used to coordinate the energization of all new equipment in the Production Environment.10  
+1. Planned outages
+TSPs and REs should remember that Planned Outages on new pieces of equipment will be possible only after the new piece of equipment is modeled in NMMS.  Future equipment will be available in the Outage Scheduler seven calendar days after the NOMCR is submitted.  The model-ready date for a piece of equipment is the earliest planned start date that can be entered for an outage on that same piece of equipment in the Outage Scheduler.  
+2. Forced outages
+The ERCOT Forced Outage Detector will notify the ERCOT operator anytime the telemetered status of a piece of equipment differs from the modeled state for more than two hours.  
+3. Coordinating Model and Outage Scheduler Entries
+Protocols require data submitters to use Planned Outages to coordinate model-ready and field-energization dates for new equipment11.  The use of Planned Outages is essential in evaluating security in all study cases proceeding real-time.  In addition, the lack of Planned Outages in association with new equipment energization may result in the increased withdrawal of approval for previously approved outages.
+
+VII. Retiring Equipment 
+Similar to the energization process, two terms need to be defined in order to describe the retirement process for existing equipment.  
+The first is the model-retirement date and the second is the field-retirement date.  The model-retirement date is the date that an existing piece of equipment is retired or removed from the NMMS model.  This date is governed by the submission of a NOMCR.  The field-retirement date is the date that the equipment is de-energized in the field in order to be permanently removed from service and is controlled by entries in the Outage Scheduler.  In general, NOMCRs that retire equipment from the model should be separate from those that make other changes.
+The field-retirement date should precede the model-retirement date.  In addition, the model-retirement date should be associated with a Scheduled or Supplemental model load date.  If a TSP mistakenly enters a model-retirement date for an existing piece of equipment that does not match a model load date, ERCOT will contact the data submitter with a suggested correction.  Without the correction that piece of equipment may not be included in that model (models are back-loaded with data).   
+For example, assume a model is to be loaded on April 1st and then a subsequent model will be loaded on April 8th.  A breaker is to be field-retired on April 6th.  If the TSP retires the equipment on April 6th from the model, that equipment will not be included in the April 1st model load.  The April 1st model load only includes what is in service on April 8th (this is the backloading mentioned earlier).  See illustration below.
+
+
+
+In this example, ERCOT expects the model-retirement date will be scheduled for April 8th.  A planned outage will be entered for April 6th until April 8th in order to represent the fact that the equipment has been retired from service.  Similar to outages associated with model-energization dates the outages associated with model-retirement dates need to be entered well in advance in order to facilitate any analysis done before real-time.  If the CB that is field-retired on April 6th is also model-retired on that date it will not be included in the model used for April 1st to April 7th resulting in an energized breaker not being represented in the model for six days. 
+
+
+
+VIII. General Modeling Principles for Submitters
+Scheduled Model load dates should be utilized for all topology changes, the energization of new equipment, the retirement of existing equipment, and changes to ICCP data telemetry.  ERCOT will work with data submitters to schedule Supplemental Loads if possible to simplify the modeling demands for data submitters provided the protocol required data submittal timelines are met.
+In cases where topology changes or additions cannot be coordinated with scheduled Model Loads, a series of outages and duplicate (pseudo) modeling can be used to accurately represent in the model changes that occur in the field.
+Adherence to the following modeling principles will be useful in minimizing the use of pseudo equipment in the Network Model.
+* Model-ready dates for new equipment should coincide with a scheduled model load.
+* Model-ready dates for new equipment should precede field-energization dates for that same equipment.
+* Model-retirement dates should coincide with a scheduled model load
+* Field-retirement dates for equipment that is to be retired should precede the model-retirement date for that same equipment.
+* The Outage Scheduler will be the primary tool to coordinate the difference between the model-ready dates and field-energization dates (as well as model-retirement dates and field-retirement dates).  In general, unforeseen changes in construction schedules should be accounted for by modification of outages in the Outage Scheduler.
+* ERCOT suggests that the model-ready date precede the field-energization date by approximately two weeks in order to give the NOMCR submitter flexibility to bring the new equipment into service earlier than anticipated.
+* ERCOT suggests that the field-retirement date precede the model-retirement date by approximately two weeks in order to give the NOMCR submitter flexibility to keep a piece of equipment in service past the expected field-retirement date.
+A. Modeling Examples
+Included below are several examples of common additions and changes to the ERCOT Network Model.  For each of these examples a model load schedule of April 1st, April 7th, April 14th, and April 21st will be used.
+a) New Line Termination 
+Line terminates in a different station on April 10th and requires a 5-day construction outage
+
+
+
+The sequence of events would be as follows:
+* Before January 1st, a NOMCR should be submitted with a model-ready date of April 7th for L2, SW-3, and CB-3.
+* Before January 1st, a NOMCR should be submitted to retire L1, SW-2, CB-2 with a model-retirement date of April 7th 
+* Outages should be submitted on CB-1, SW-1, L1, SW-2, and CB-2 starting date on April 5th.  These outages will de-energize the existing equipment from the model.  The TSP has the flexibility to enter the outages earlier than expected.  However the new line cannot be energized until after the model load on April 7th.  Ideally these outages should be submitted prior to January 15th to facilitate model validation.  The outages on SW-2, CB-2, and L1 should end on April 7th (the model load in which this equipment is retired from the model).
+* A second outage should be entered on L2, SW-3, and CB-3.  These outages should begin on April 7st (model load date in which the new equipment first appears in production) and end on April 10th (field-energization date for the new equipment).
+* On April 10th, the Approval to Energize process is followed to energize the new equipment.
+The following illustration shows the sequence of outages and modeling needed to represent this change in topology in the field.
+
+
+
+IMPORTANT NOTE:  The sequence of outages and NOMCRs illustrated above gives the TSP to ability move the beginning of the construction outages as early as needed.  The TSP also has the flexibility to extend the outages to anytime past April 10th using entries in the Outage Scheduler.  Restrictions include the fact that the Field-energization of the new line cannot occur before the model load on April 7th, and the entire process requires a model load to occur during the construction outage.
+b) New Tapped Station 
+New Station built in the middle of existing line to be energized on April 10th.  Construction requires a 9-day outage.
+
+
+The sequence of events would be as follows:
+* Before January 1st, a NOMCR should be submitted with a model-ready date of April 7th for L2, L3, Station X, SW-3, and LD-1
+* Before January 1st, a NOMCR should be submitted to retire L1 with a model-retirement date of April 7th 
+* Outages should be submitted on CB-1, SW-1, L1, SW-2, and CB-2 starting date on April 2nd.  These outages will de-energize the existing equipment from the model.  Ideally these outages should be submitted prior to January 15th to facilitate model validation.  The outage on L1 should end on April 7th (the model load in which this equipment is retired from the model).
+* A second group of outages should be submitted on L2, L3, SW-3, and LD-1.  These outages should begin on April 7st (model load date in which new equipment first appears in production).  The outages should end on April 10th (field-energization date for the new equipment).
+* On April 10th, the Approval to Energize process is followed to energize the new equipment.
+The following illustration shows the sequence of outages and modeling needed to represent this change in topology in the field.
+
+
+
+
+
+c) New Line
+Line is constructed between existing stations with a field-energization date of April 10th.
+
+
+In this example a new line, two breakers, and two disconnect switches are scheduled to be field-energized on April 10th.  
+* Before January 1st, a NOMCR should be submitted with a model-ready date of April 1st for each piece of new equipment.  
+* Outages should be submitted for each piece of new equipment12 that span the time period between the model-ready date and the field-energize date.
+* On April 10th, the Approval to Energize process is followed to energize the new equipment.
+The following illustration shows the sequence of outages and modeling needed to represent this change in topology in the field.
+d) Switching Station 
+New Switching Station is constructed at the intersection of two existing lines.  Station is to be fully energized on April 22rd.  Construction requires a series of outages spanning a twenty-one day period with two intermediate configurations.  Final state on April 8th database load shown here:
+
+In this example, the first intermediate stage requires a new station to be cut into L1 on April 8th.  
+* Before January 1st, a NOMCR should be submitted with a model-ready date of April 1st for CB-D, CB-B, L3, and L5.
+* Before January 1st, a NOMCR should be submitted with a model-retirement date of April 7th for L1.
+* Outage should be submitted for L1 that begins on April 2nd and ends on April 7th (the model-retirement date for L1). 
+* Outage should be submitted for CB-1 and CB-4 that begins on April 2nd and ends on April 8th (the field-energization date for L3 and L5).
+* Outages should be submitted On April 7th, for CB-D, CB-B, L3, and L5.  These outages should end on April 8th.
+* If ICCP status is provided, OPEN Status is required for line-side switching equipment (CB-B & CB-D) at Station X starting on April 1st.
+
+This completes configuration Intermediate 1.
+
+
+ The following needs to take place in order to transition from Intermediate 1 to Intermediate 2.  For this stage, L4 is to be field-energized on April 14th (the same day as the Scheduled Model Load).
+* Before January 1st, a NOMCR should be submitted with a model-ready date of April 14st for CB-A and L4.
+* Before January 1st, a NOMCR should be submitted with a model-retirement date of April 14th for L2.
+* Outages should be submitted for L2 and CB-2 that begin on April 11th and end on April 14th (the model-retirement date for L2 and the field-energization date for CB-2).
+* Outages should be submitted for CB-A and L4 that start and end on April 14th which is both the model-ready and field-energization date for this equipment.  The outages would span the time from the database load (12:00 AM) until the field-energization.
+
+This completes configuration Intermediate 2.
+
+
+
+The following needs to take place in order to transition from Intermediate 2 to the final configuration for the new switching station.  Line L5 is to be field-energized on April 22nd.
+* Before January 1st, a NOMCR should be submitted with a model-ready date of April 22nd L6, CB-C and CB-3 (These elements could have been entered on an earlier database load and outaged).
+* Outages should be submitted for L6 and CB-3 that begin on April 14th and end on April 22nd (the field-energization date for L6 , CB-C and CB-3). 
+
+This completes the modeling and outage sequence for the new switching station.  The overall series of modeling and outage submissions is illustrated in the below diagram.
+
+
+
+
+
+
+
+e) New Tapped Station or Switching Station with an unknown project energization date
+A new Station built in the middle of existing line, but either the energize date is undetermined or the project is subject to be delayed.   The targeting of the expected energize date should be on an optimistic early-date for energizing new equipment which models the future lines replacing the existing line.  The main emphasis is that any modeled future equipment must have a telemetered status state that doesn't cause the ERCOT model to be significantly different from the physical flows.  The below example will show the more difficult Switching Station example:
+* In a situation of a "nearby" switch station, Switching devices (in series between existing stations) at the new cut-in station with future switching devices CB-A & CB-B are expected to be modeled as normally Closed.
+* Telemetry is not required prior to the Approval to Energize, but if status is provided, then it must reflect the normally modeled state (that is expected to result in similar power flows between the physical & modeled state).
+* For the Approval to Energize process, all equipment inside Station C is expected to have an Outage Schedule entry.  The physical conductor between the Tap tower to Station C goes through the Approval to Energize process when the line-end breakers at Station C are given the Approval to Energize.
+* If the project is delayed (not more than 45 days), and model corrections are not possible and/or desired, then ERCOT will review the differences expected between the Physical vs. Modeled power flows.  As a general guideline: if there is less than 10MVAR flow difference, then it is possible to allow for the physical single line "L1" to be represented in the model as the two future lines "L2 & L3".  ERCOT's model of flow on future lines is used as an equivalent to the physical line.  Modeled flow (that might include effects of the non-connected future conductor between the Tap tower to Station C) does not constitute an Approval to Energize on this future equipment.  Rather, it is ERCOT's determination that differences are acceptable for a time period of the project delay.
+The following illustration shows the modeling needed to represent this change in topology in the field.
+
+* In a situation of a "distant" switch station, modeled station boundaries include all equipment including 1) jumpers modeled as switches around the Tap tower  2) conductor from the Tap tower to the new station  3) anything else necessary for a proper model.
+* Jumper A is expected to be Normally Closed.   All other equipment is expected to be in a state as not to cause the modeled flows to differ from the physical flows.
+* Telemetry is not required prior to the Approval to Energize, but if status is provided, then it must reflect the normally modeled state (that is expected to result in similar power flows between the physical & modeled state).
+* For the Approval to Energize process, all equipment inside Station C is expected to have an Outage Schedule entry.  The physical conductor between the Tap tower to Station C goes through the Approval to Energize process when the Future line TapA_C & Future line TapB_C are outaged & placed back into service with its associated line-end breakers at Station C.
+* If the project is delayed (not more than 45 days), and model corrections are not possible and/or desired, the use of Jumper A is expected to result in no differences between the Physical vs. Modeled power flows.
+* Modeling a Series_Compensator is permitted to represent conductor length between Tap tower and cut-in Station C).  ERCOT's expectation is that no more than 10MVAR flow differences exist between modeled vs not-modeled states.
+* After the project is completed, it may be desired by the MP that all Jumpers are removed from the model.  It also may be desired by the MP to change the characteristics of Lines (L2 & L3) to include the Series_Compensators (TapA_C & TapB_C), and remove the Series_Compensators.
+The following illustration shows the "After" modeling needed to represent this change in topology in the field.
+
+
+
+* At the point that the physical line characteristic of Charging Susceptance (which cannot be modeled with Series_Compensators) causes a 10MVAR difference between Physical vs. Modeled power flows, then the Tap tower should be modeled as a substation and lines be modeled appropriately. 
+* After the project transition is completed, the modeled Jumpers can be removed with Station D remaining.  Also, Station D can be removed if the characteristics of the tap conductor is included in another line (example: combining line L2 & TapA_C).
+
+This completes the modeling and outage sequence for the new tapped station or switching station.  The overall series of modeling and outage submissions is illustrated in the below diagram.
+
+
+
+
+f) Line Converted to New Voltage (using same name)
+An existing 69-kV line is re-insulated and converted to 138-kV.  The from and to stations do not change.  The new 138-kV line is scheduled to be energized on April 10th.  A 5-day construction outage is required in order to move the line to the new voltage (the length of the construction outage is not relevant.  However in this example it must span a database load).
+
+
+
+In this example, the following actions will be necessary for the new line to be energized on April 10th following a 5-day outage.  
+* Before January 1st, a NOMCR should be submitted to rename the 69-kV line to "L2-old" with an energization date of April 1st.
+* Before January 1st, a NOMCR should be submitted with a model-retirement date of April 7th to retire CB-3, CB-4 and L2-old.
+* Before January 1st, a NOMCR should be submitted with a model-ready date of April 7th for CB-5, CB-6, and L2.  
+* Outages should be submitted for CB-3, CB-4, and L2-old that start on April 5th and end on April 7th.
+* Outages should be submitted for CB-5, CB-6, and L2 that start on April 7th and end on April 10th.
+The following illustration shows the sequence of outages and modeling needed to represent this change in topology in the field.
+
+IX. Contingencies
+A. Single Credible Contingencies
+Single credible contingencies will be programmatically generated and appended to each CIM model.  Each Network Operations Model could have a unique contingency file.  It is expected that equipment owners will work with ERCOT to identify equipment that should not be included in a contingency (i.e. breakers without relaying).  Conversely, it is expected that the equipment owners notify ERCOT when equipment that was previously excluded should be re-included in a contingency.  ERCOT's programmatic contingency generator has the capability to exclude contingencies on previously identified equipment.  The identification flag for equipment that is to be excluded from the programmatic contingency generation will have ERCOT ownership in the model.
+B. Double Element Contingencies
+C. Double Element contingencies will be programmatically generated using the information provided by the owners of the equipment and appended to each CIM model.  Yearly, ERCOT will distribute to the owners of equipment a spreadsheet of all the double element contingencies13  with associated equipment . After their review, the owners of the equipment are responsible to make updates to the spreadsheet and propose a CAMR for ERCOT to model any updates needed.   It is expected that equipment owners will proactively communicate to ERCOT which equipment should be included in double element contingencies as identified in ERCOT Operating Guides.  For example, any model change that results in the creation (or removal) of one or more new double element contingencies should be submitted with the identification of which elements create each of the new double element contingencies.  That information will be used to update the contingency list in NMMS.  An agenda item will be added to the Network Data Support Working Group (NDSWG) meetings to review the current list of double elements and verify that the list is complete.  ERCOT will be identified in the model as the owner of the contingencies. Special Modeling Considerations
+The typical modeling criteria for contingency definitions are straightforward; contingencies are modeled breaker-to-breaker between autotransformers, AC transmission lines, shunt compensators, SVCs or between a generator and its high-side breaker.  This is performed with the assumption that breakers are the only devices in the model which can break current, and under steady state isolate a faulted element or elements.  In certain situations, however, the typical criteria may not be how the system topology is represented under steady state conditions.  In these cases, special modeling considerations must be made in order to properly represent the steady-state configuration of the grid under contingency.  Additionally, special modeling considerations need to be made in order to support downstream systems' contingency analysis processes, such as the CRR and Planning models which utilize a bus-branch model as opposed to a breaker model.
+In order to properly model non-typical system configurations, the ContingencyComponent flag within the NMMS can be set accordingly, as can the Connectivity Node Group associations.  The following sub-sections outline what changes to the model are to be made to accommodate these special cases.
+1. ContingencyComponent Flag Setting
+The ContingencyComponent flag identifies how a modeled transmission element should be handled during contingency analysis.  The modeled transmission elements in a Contingency definition may need to be done with consultation between the MP and ERCOT Operations.  
+* For a breaker, the flag is set to true if the breaker is controlled by relay action and will open in the event a fault on an element sensed by the relay.  A false setting for the flag indicates the breaker will not operate in response to a fault.  
+* For a switch, the flag is set to true to indicate a switch will not operate in the event of a fault.  The flag should be set to false for a switch to indicate an abnormal situation where the switch does operate in response to a relevant fault.  ERCOT defines switch action that occurs automatically, within approximately 60 seconds of the fault, to be modeled with the ContingenencyComponet flag set to false for that switch.  Exceptions to the 30-second guideline can be made after discussion with ERCOT Operations.  The intent is to capture automatic actions in the contingency definitions.  
+Operator initiated switching is not considered automatic. The contingency control flag is used to modify the contingency definition.  If the default flag assignment on new breaker & switch devices does not correctly simulate the expected contingency, the MP is expected to manage the contingency component flag such that the correct contingency can be built from the modeled ContingencyComponent flags.
+The ContingencyComponent flag is located in the Attributes tab of the equipment in SGEM as indicated in the figure below.  
+ContingencyComponent location:
+
+
+
+
+2. Special Modeling Examples
+Certain disconnects on the high-side of autotransformers have relaying capability which allows the high-side bus breakers to open and reclose upon the occurrence of a fault on the autotransformer.  In this case, the high-side disconnect can be set to FALSE to properly model the steady state topology under contingency:
+
+
+Breaker-to-Breaker Configuration
+	One-Line:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	Contingency Definition:
+CB 4900
+CB 9795
+CB 2100
+CB 2103
+AXFMR3
+
+High-side disconnect configuration
+	One-Line:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	Contingency Definition:
+DSC 4904
+CB 2100
+CB 2103
+AXFMR3
+Another example can be that of circuit breakers which do not have relaying capability.  In these cases, the non-relaying breakers can be set to FALSE to properly model the contingency, which can have the affect of greatly modifying the definition of the contingency.
+Original Configuration (breaker 10180 in the example)
+	One-Line:
+
+
+
+
+
+
+
+
+
+
+
+
+	Contingency Definition:
+CB OCB_10150
+CB OCB_10180
+Line to McNeil and its breakers
+
+
+Configuration with non-relaying breaker flag set to FALSE (breaker 10180 in the example)
+	One-Line:
+
+
+
+
+
+
+
+
+
+
+
+
+	Contingency Definition:
+CB OCB_10150
+CB OCB_10140
+Line to McNeil and its breakers
+Line to Elgin Switch and its breakers
+
+D. Manually Defined Contingencies
+Manually defined contingencies are contingencies which are modeled in collaboration with ERCOT and the equipment owner to model contingency definitions which may not be generated correctly due to model changes or for special modeling considerations.  Manually defined contingencies are usually set as disabled and require the equipment owners to notify ERCOT to enable these contingencies. Yearly, ERCOT will distribute to the owners of equipment a spreadsheet of all the manual contingencies with associated equipment.  Manually defined contingencies should be limited in number and in duration of use.
+
+E. Contingency Maintenance Expectation
+The expectation is for owners of the equipment to notify ERCOT, via a CAMR when contingencies are needed to be added, removed, modified, activated, or disabled. Below are some guidelines with respect to contingency maintenance.  These guidelines may not be applicable to all scenarios and all situations are under ERCOT discretion:
+1. Manual Contingencies
+These items below, are in addition to the expected participation from owner in the annual review of Manual Contingencies.
+a) Contingency ID
+The ID for Manually Defined Contingencies shall be defined in collaboration between ERCOT and the TSP or RE. Below are guidelines for the ID:
+
+1. The contingency ID shall be at max 8 characters in length.
+2. The contingency ID should be in the format of MBBBCCC# when permitted.
+3. The first character must be 'M' to represent Manually Defined contingency.
+4. BBB represents the first three letters in the beginning substation's mnemonic in the ERCOT Network Operations Model, this is defined in collaboration with ERCOT and the TSP/RE. If the mnemonic of the substation is shorter than 3 characters an underscore should be used.
+5. CCC represents the first three letters in the ending substation's mnemonic in the ERCOT Operations Mode, this is defined in collaboration with ERCOT and the TSP/RE. If the mnemonic of the substation is shorter than 3 characters an underscore should be used.
+6. # represents the voltage class. In the case that there are lines from different voltage levels then it must be represented in the contingency ID by modifying either criteria #3 or #4 to accommodate the extra character.
+
+For other scenarios which the Manually Defined Contingency doesn't fit the criteria specified above, ERCOT and the TSP/RE should determine the contingency ID that works best for the scenario.
+
+b) Contingency Long Name
+For the contingency long name of Manually Defined Contingencies should follow the following convention: "Manual" + "Substation 1 Mnemonic" + "-"+ "Substation 2 Mnemonic" + "Voltage Level" + "KV".
+
+For other scenarios which the Multi Element Contingency doesn't fit the criteria specified above, ERCOT and the TSP/RE should determine the contingency long name that works best for the scenario.
+
+c) Additions
+* If there is an immediate need to add a new Manual Contingency, a DPC CAMR is needed. Within the DPC CAMR, it must be clearly communicated which contingency(ies) must be enabled and which programmatically generated contingency(ies) must be disabled.
+* If there is the need to add a new Manual Contingency due to a modeling change or other special modeling considerations or to accommodate a future database load, a CAMR is needed. The CAMR should be submitted for the same database load in which model change or other special modeling considerations are taking place. The Manual Contingency should be modeled as initially disabled, and it is the expectation for the owner to follow the steps in section b to enable the Manual Contingency when it is needed.
+d) Enabling
+* If there is an immediate need to enable a disabled Manual Contingency, a DPC CAMR must be submitted to enable the Manual Contingency. In addition, within the same CAMR, the owner needs to notify ERCOT which programmatically generated contingency(ies) must be disabled.
+e) Disabling
+* If there is an immediate need to disable a previously enabled Manual Contingency, a DPC CAMR must be submitted notifying ERCOT to disable the Manual contingency. In addition, within the same CAMR, the owner needs to notify ERCOT which of the previously disabled programmatically generated contingency(ies) must be enabled. 
+f) Removal
+* If an enabled Manual Contingency was modeled due to modeling changes or special modeling considerations which have been removed in a future database load, a CAMR with the same database load as the removal of the model changes or special modeling considerations must be submitted deleting the Manual Contingency. In addition, within the same CAMR, the owner needs to notify ERCOT which of the previously disabled programmatically generated contingencies need to be enabled.
+* If a disabled Manual Contingency was modeled due to modeling changes or special modeling considerations which have been removed in a future database load, and the Manual Contingency is needed, then a DPC CAMR must be submitted to enable the Manual Contingency and disable the programmatically generated contingency(ies). An additional CAMR with the same database load as the removal of the model changes or special modeling considerations, must be submitted deleting the Manual Contingency. Lastly, within the cleanup CAMR, the owner needs to notify ERCOT which of the previously disabled programmatically generated contingencies need to be enabled.
+g) Other
+* For any other situation that doesn't align with the previous bullets, such as modification of equipment in a contingency, a CAMR for the next available database load must be submitted. In addition, within the same CAMR, the owner needs to notify ERCOT which programmatically generated contingencies should be enabled/disabled (if applicable).
+2. Double Element Contingencies
+These items below, are in addition to the expected participation from owner in the annual review of Double Element Contingencies.
+a) Contingency ID
+The ID for Multi Element contingencies shall be defined in collaboration between ERCOT and the TSP or RE. Below are guidelines for the ID of Multi Element contingencies for Double Transmission Lines:
+1. The contingency ID shall be at max 8 characters in length.
+2. The contingency ID should be in the format of DBBBCCC# when permitted.
+3. The first character must be 'D' to represent multi element contingency.
+4. BBB represents the first three letters in the beginning substation's mnemonic in the ERCOT Network Operations Model, this is defined in collaboration with ERCOT and the TSP/RE. If the mnemonic of the substation is shorter than 3 characters an underscore should be used.
+5. CCC represents the first three letters in the ending substation's mnemonic in the ERCOT Operations Mode, this is defined in collaboration with ERCOT and the TSP/RE. If the mnemonic of the substation is shorter than 3 characters an underscore should be used.
+6. # represents the voltage class. In the case that there are lines from different voltage levels then it must be represented in the contingency ID by modifying either criteria 3 or 4 to accommodate the extra character.
+
+Below are guidelines for the ID of Multi Element contingencies for Combined Cycle Trains:
+
+1. The contingency ID shall be at max 8 characters in length.
+2. The contingency ID should be in the format of DCC#BBBB when permitted.
+3. The first character must be 'D' to identify it as multi element contingency.
+4. The 2nd and 3rd characters must be CC to identify the contingency as a Combined Cycle train contingency.
+5. If multiple Combined Cycle trains in the station, # should be the number of the train, if only one train this could be substituted with an underscore.
+6. BBBB represents the first four letters in the substation's mnemonic in the ERCOT Operations Mode, this is defined in collaboration with ERCOT and the TSP/RE. If the mnemonic of the substation is shorter than 4 characters the amount of characters in could be reduced.
+
+For other scenarios which the Multi Element Contingency doesn't fit the criteria specified above, ERCOT and the TSP/RE should determine the contingency ID that works best for the scenario.
+
+b) Contingency Long Name
+For the contingency long name of Multi Element contingencies for Double Transmission Lines should follow the following convention: "Substation 1 Mnemonic" + "-" + "Substation 2 Mnemonic" + "Voltage Level" + "KV".
+
+For the contingency long name of Multi Element contingencies for Combined Cycle Trains should follow the following convention: "Substation Mnemonic" + "CC"+ "Train # if applicable"
+
+For other scenarios which the Multi Element Contingency doesn't fit the criteria specified above, ERCOT and the TSP/RE should determine the contingency long name that works best for the scenario.
+
+c) Additions
+* If there is an immediate need to add a new Double Element Contingency, a DPC CAMR is needed. Within the DPC CAMR, it must be clearly communicated that the contingency must be set to enable and which Double Element contingencies need to be disabled.
+* If there is the need to add a new Double Element Contingency due to a modeling change or other special modeling considerations or to accommodate for a future database load, a CAMR is needed. The CAMR should be submitted for the same database load in which model changes or other special modeling considerations are taking place. In addition, this Double Element Contingency shall be modeled as a disabled Manual Contingency to accommodate the modeling changes or other special modeling considerations. Lastly, it is the expectation for the owner to follow the steps in section b to enable the Manual Double Element Contingency when it is needed.
+d) Enabling
+* If there is an immediate need to enable a disabled Manual Double Element Contingency, a DPC CAMR must be submitted to enable the Manual Double Element Contingency. In addition, within the same CAMR, the owner needs to notify ERCOT which Double Element Contingency need to be disabled.
+e) Disabling
+* If there is an immediate need to disable a previously enabled Manual Double Element Contingency, a DPC CAMR must be submitted notifying ERCOT to disable the Manual Double Element Contingency. In addition, within the same CAMR, the owner needs to notify ERCOT which of the previously disabled Double Element Contingency(ies) must be enabled. 
+f) Removal
+* If an enabled Manual Double Element Contingency was modeled due to modeling changes or special modeling considerations which have been removed in a future database load and needs to be retained, a CAMR with the same database load as the removal of the model changes or special modeling considerations must be submitted converting the Manual Double Element Contingency to a Double Element Contingency. In addition, within the same cleanup CAMR, the owner needs to notify ERCOT which of the previously disabled Double Circuit Contingency(ies) must be removed.
+* If an enabled Manual Double Element Contingency was modeled due to modeling changes or special modeling considerations which have been removed in a future database load and does not need to be retained, a CAMR with the same database load as the removal of the model changes or special modeling considerations must be submitted deleting the Manual Double Element Contingency. In addition, within the same cleanup CAMR, the owner needs to notify ERCOT which of the previously disabled Double Circuit Contingency(ies) need to be enabled.
+* If a disabled Manual Double Element Contingency was modeled due to modeling changes or special modeling considerations which have been removed in a future database load, and the Manual Double Element Contingency is needed, then a DPC CAMR must be submitted to enable the Manual Double Element Contingency and disable the old Double Circuit Contingencies. An additional CAMR for the same database load as the removal of the model changes or special modeling considerations must be submitted converting the Manual Double Element Contingency to a Double Element Contingency if needed to be retained. Lastly, within the same cleanup CAMR, the owner needs to notify ERCOT which Double Circuit Contingency must be deleted.
+* If a disabled Manual Double Element Contingency was modeled due to modeling changes or special modeling considerations which have been removed in a future database load, and the Manual Double Element Contingency is needed, then a DPC CAMR must be submitted to enable the Manual Double Element Contingency and disable the old Double Circuit Contingencies. An additional CAMR for the same database load as the removal of the model changes or special modeling considerations must be submitted deleting the Manual Double Element Contingency. Lastly, within the same cleanup CAMR, the owner needs to notify ERCOT which Double Circuit Contingency must be enabled.
+g) Other
+* For any other situation that doesn't align with the previous bullets, such as modification of equipment in a contingency, a CAMR for the next available database load must be submitted. In addition, within the same CAMR, the owner needs to notify ERCOT which Double Element Contingency should be enabled/disabled (if applicable).
+
+Depending in the situation, unique CAMR submissions may not be needed for each of the steps above and it may be better to combine steps into a single CAMR. Please consult ERCOT Modeling for clarification. Templates to perform the steps above and to be appended to the CAMR are available upon request to ERCOT Modeling and in the PTC Postings folder.
+In the situations in which a DPC CAMR is involved, it is the expectation for the equipment owner to notify ERCOT Operations at least one hour prior to the action (enabling or disabling) is ready to be implemented.
+In the situations in which a DPC CAMR is involved and action is getting delayed or postponed, it is the expectation for the equipment owner to notify the ERCOT Control Room, and work with ERCOT Modeling to reschedule any CAMRs/NOMCRs needed.
+In the situations which a DPC CAMR is required but it is after 5 PM during business days, weekend or an ERCOT holiday it is the expectation for the equipment owner to complete the DPC request and notify the ERCOT Control Room with the submitted CAMR number and follow up the next business day with ERCOT Modeling.
+X. Relay Loadability
+Relay Loadability is the 4th rating in the static rating set for lines, series compensators and power transformers. This rating will be used for ERCOT Operations and Planning studies as a trigger for initiating potential cascading analysis. If the line, series compensator or power transformer is co-owned by two entities, both entities must provide a relay loadability value. ERCOT's applications shall use the most conservative of the values.
+Below are some guidelines on what to populate if the relay loadability value is available or not:
+ScenarioValueRelay Loadability is availableValueElement that is not monitored by Relay88888
+The data shall be collected through the NOMCR process for TDSPs and the Resource Asset Registration Form for REs. As requested by Market Participants to minimize the impact of providing this additional rating, there are two submission timelines that entities can utilize depending on the classification of the Transmission Facility meeting the NERC BES definition and the margin between the Load Shed Rating and the Relay Loadability.  This allows additional flexibility for facilities that pose less risk to the BES or have the Relay Loadability set to a level that is not typical to a Real-Time Assessment (RTA) and Operational Planning Analysis (OPA) solved contingency results (i.e. would not be a protection system limitation).  
+While this flexibility is allowed, actively maintaining all Relay Loadability is encouraged.  ERCOT will coordinate with TSPs and may require Transmission Facilities that meet the criteria for being periodically maintained to be actively maintained if ERCOT, in its sole discretion, determines the loss of the non-BES Transmission Facility creates risk on the BES or if the Relay Loadability Rating becomes typical to an RTA or OPA solved contingency result. While an annual submission is allowed for the Periodically Maintained category below, ERCOT encourages that the updates are staggered rather than all in one submission.
+CriteriaSubmission TypeActively MaintainedValue < 150% of Static Emergency Rating (2 Hour Rating) for all Transmission Facilities.
+Or Value < 125% of Static 15 Minute Rating.Standard or Interim Submission.Periodically MaintainedAny Transmission Facility not meeting the Actively Maintained criteria.
+At least annually.
+SGEM enforces the following validation rules on the Relay Loadability Rating:
+1. Relay Loadability Rating must be greater than the Static 15 Minute Static.
+2. Relay Loadability Rating must be greater than the 20° F 15 Minute Rating (if the Transmission Facility is dynamically rated).
+A. Examples
+Below are some examples of how the data shall be populated for 3 different scenarios.
+1. Branch That Is Not Monitored By Relay
+
+
+2. Line With Multiple Taps And Relaying On The Switching Station 
+
+3. Co-owned Line Both Owners Have Relay Loadability Value
+
+4. Co-owned Line One Owner Does Not Have Relaying
+
+
+
+Appendix A     Model Request Classifications
+
+This table is not meant to represent all instances of interim updates.
+DescriptionClass 1Class 2Class 3Equipment RenamesvvStation RenamesvvEquipment Rating (static)vvBreaker or Switch status changevvConnectivity ChangesvvvTelemetry ChangesvvvNew Equipment Additionsvv Equipment RetirementsvvRegistration datavvUnit CharacteristicsvEquipment OwnershipvvEquipment OperatorshipvvZone correctionsvSPS, RAP, PCAP, or MP Activationvvv
+
+
+1 ERCOT Nodal Protocols 3.10.1 (1)
+2 ERCOT Nodal Protocols 3.10.1
+3 ERCOT Nodal Protocols 3.10.4 (5)
+4 ERCOT Nodal Protocols 3.10.4 (5)
+5 ERCOT Nodal Protocols 3.10.1 (6)
+6 ERCOT Nodal Protocols 3.10.8.4 (c),(d)
+7 ERCOT Nodal Protocols 3.10.4 (5)
+8 ERCOT Nodal Protocols 3.10.1
+9 Related to NPRR146
+10 ERCOT Nodal Protocols 3.3.2.1
+11 ERCOT Nodal Protocols 3.3.2.1
+12 ERCOT Nodal  Protocols 3.1.5.1 (1)
+13  Double Circuit contingencies are defined in the ERCOT Nodal Operating Guides Section 1 under "Credible Single Contingency".  Two circuits that share the same towers for more than 0.5 miles are considered as a Double Circuit Contingency.  Breakers that do not have relaying also need to be brought to the attention of ERCOT as they may require special modeling considerations as indicated in sub-section C of this section.
+---------------
+
+------------------------------------------------------------
+
+---------------
+
+------------------------------------------------------------
+
+
+
+	Page 22 of 55	
+
+
+
+
+
+
+
+
+
