@@ -2,13 +2,15 @@
 
 Use this checklist to move M.V.R.ESPRINT1 from prototype to submission-ready evidence.
 
+Legend: `🔵✓` = completed and evidenced in-repo as of April 7, 2026.
+
 ## 1) Repository and Build Integrity
 
 - [ ] CI passes on `main` for `fmt`, `clippy`, `check`, `test`
-- [ ] Pinned Rust toolchain documented (`rust-toolchain.toml` or equivalent)
+- [x] 🔵✓ Pinned Rust toolchain documented (`rust-toolchain.toml` or equivalent)
 - [ ] `Cargo.lock` committed and reproducible builds verified
 - [ ] Release build succeeds (`cargo build --release`)
-- [ ] No `unsafe` blocks introduced (`#![deny(unsafe_code)]` remains enforced)
+- [x] 🔵✓ No `unsafe` blocks introduced (`#![deny(unsafe_code)]` remains enforced)
 
 ## 2) Determinism and Timing Evidence
 
@@ -31,7 +33,7 @@ Use this checklist to move M.V.R.ESPRINT1 from prototype to submission-ready evi
 - [ ] Cryptographic hash chain validated end-to-end
 - [ ] Signature and attestation verification tests pass
 - [ ] Access control boundaries documented for all actors/interfaces
-- [ ] Threat scenarios exercised in adversarial harness
+- [x] 🔵✓ Threat scenarios exercised in adversarial harness
 - [ ] Dependency vulnerability scan completed and reviewed
 
 ## 5) Compliance Mapping Package
@@ -40,7 +42,7 @@ Use this checklist to move M.V.R.ESPRINT1 from prototype to submission-ready evi
 - [ ] Each control has objective evidence (test, log, trace, artifact)
 - [ ] Non-conformances tracked with mitigation and owner
 - [ ] Regulatory assumptions clearly stated and versioned
-- [ ] Scope boundaries stated (advisory vs assisted control)
+- [x] 🔵✓ Scope boundaries stated (advisory vs assisted control)
 
 ## 6) Operational Readiness
 
@@ -52,9 +54,9 @@ Use this checklist to move M.V.R.ESPRINT1 from prototype to submission-ready evi
 
 ## 7) Pilot and Submission Artifacts
 
-- [ ] Pilot objective statement (what success looks like)
+- [x] 🔵✓ Pilot objective statement (what success looks like)
 - [ ] Test matrix for normal/degraded/emergency scenarios
-- [ ] Sample SovereignTrace bundle with verification steps
+- [x] 🔵✓ Sample SovereignTrace bundle with verification steps
 - [ ] Executive summary for non-technical reviewers
 - [ ] Technical appendix with reproducible commands
 
@@ -85,6 +87,6 @@ evidence/
 - Prefer reproducible command logs over screenshots.
 - Present controls in reviewer language first, implementation details second.
 ## April 2026 Evidence Update
-- [x] Ubuntu 24.04 WSL development environment documented with required native packages
-- [x] Workspace build verification command documented as cargo check --message-format short
+- [x] 🔵✓ Ubuntu 24.04 WSL development environment documented with required native packages
+- [x] 🔵✓ Workspace build verification command documented as cargo check --message-format short
 - [ ] Release build and binary smoke test evidence still need a clean post-restart WSL run
