@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn build_demo_records(count: usize) -> Vec<AttestationRecord> {
     let mut records = Vec::with_capacity(count);
-    let mut prev_hash = vec![0u8; 32];
+    let mut previous_signature: Option<Vec<u8>> = None;
 
     for i in 0..count {
         let decision_hash = Sha256::digest(format!("decision-{i}").as_bytes()).to_vec();
@@ -62,19 +62,24 @@ fn build_demo_records(count: usize) -> Vec<AttestationRecord> {
         signature_input.extend(&pcr_digest);
         let signature = Sha256::digest(&signature_input).to_vec();
 
+        let prev_hash = if let Some(prev_sig) = &previous_signature {
+            let mut linkage = Vec::new();
+            linkage.extend(prev_sig);
+            linkage.extend(&decision_hash);
+            Sha256::digest(&linkage).to_vec()
+        } else {
+            vec![0u8; 32]
+        };
+
         let record = AttestationRecord {
             decision_hash: decision_hash.clone(),
             pcr_digest,
             signature: signature.clone(),
             timestamp: 1_710_000_000 + i as u64,
-            prev_hash: prev_hash.clone(),
+            prev_hash,
         };
 
-        let mut next_prev_input = Vec::new();
-        next_prev_input.extend(&signature);
-        next_prev_input.extend(&decision_hash);
-        prev_hash = Sha256::digest(&next_prev_input).to_vec();
-
+        previous_signature = Some(signature);
         records.push(record);
     }
 
