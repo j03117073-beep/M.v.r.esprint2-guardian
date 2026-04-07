@@ -259,6 +259,8 @@ pub struct IRModule {
 - **CIP-007**: system integrity protection
 - **CIP-010**: configuration integrity
 - **CIP-013**: supply-chain and trust-boundary framing
+- **Control-to-Evidence Mapping**: `docs/compliance_mapping.md`
+- **Access Control Boundaries**: `docs/compliance_mapping.md` (Section 2)
 
 ### Audit Capabilities
 

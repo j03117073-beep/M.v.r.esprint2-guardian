@@ -32,16 +32,16 @@ Legend: `🔵✓` = completed and evidenced in-repo as of April 7, 2026.
 
 - [ ] Cryptographic hash chain validated end-to-end
 - [ ] Signature and attestation verification tests pass
-- [ ] Access control boundaries documented for all actors/interfaces
+- [x] 🔵✓ Access control boundaries documented for all actors/interfaces
 - [x] 🔵✓ Threat scenarios exercised in adversarial harness
 - [ ] Dependency vulnerability scan completed and reviewed
 
 ## 5) Compliance Mapping Package
 
-- [ ] BAL/PRC/FAC/CIP mapping table links code paths to obligations
-- [ ] Each control has objective evidence (test, log, trace, artifact)
-- [ ] Non-conformances tracked with mitigation and owner
-- [ ] Regulatory assumptions clearly stated and versioned
+- [x] 🔵✓ BAL/PRC/FAC/CIP mapping table links code paths to obligations
+- [x] 🔵✓ Each control has objective evidence (test, log, trace, artifact)
+- [x] 🔵✓ Non-conformances tracked with mitigation and owner
+- [x] 🔵✓ Regulatory assumptions clearly stated and versioned
 - [x] 🔵✓ Scope boundaries stated (advisory vs assisted control)
 
 ## 6) Operational Readiness
@@ -86,7 +86,10 @@ evidence/
 - Keep every claim tied to an artifact.
 - Prefer reproducible command logs over screenshots.
 - Present controls in reviewer language first, implementation details second.
+
 ## April 2026 Evidence Update
+
 - [x] 🔵✓ Ubuntu 24.04 WSL development environment documented with required native packages
-- [x] 🔵✓ Workspace build verification command documented as cargo check --message-format short
+- [x] 🔵✓ Workspace build verification command documented as `cargo check --message-format short`
+- [x] 🔵✓ Compliance mapping and access-control matrix documented in `docs/compliance_mapping.md`
 - [ ] Release build and binary smoke test evidence still need a clean post-restart WSL run
