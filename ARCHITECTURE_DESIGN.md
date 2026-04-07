@@ -2,7 +2,7 @@
 
 **Deterministic Assurance Overlay for Grid Operations**
 
-*Version 0.1.0 – March 2026*
+*Version 0.2.0 - April 7, 2026*
 
 ---
 
@@ -225,7 +225,7 @@ Stability Boundary = f(Entity_A, Entity_B, Entity_C, Constraints)
 
 **Architecture**:
 ```
-Source Code → Parser → IR Generation → Deterministic Execution
+Source Code  Parser  IR Generation  Deterministic Execution
 ```
 
 ### Sovereign Bus
@@ -282,10 +282,10 @@ struct AttestationRecord {
 
 ### Data Flow Patterns
 
-1. **Telemetry Ingestion**: External data → Sovereign Bus → Kernel Processing
-2. **Decision Execution**: Kernel → Physics Modeling → Compliance Check → Attestation
-3. **Audit Recording**: All decisions → Sovereign Trace → Immutable Storage
-4. **Verification**: External tools → Trace Validation → Compliance Reports
+1. **Telemetry Ingestion**: External data  Sovereign Bus  Kernel Processing
+2. **Decision Execution**: Kernel  Physics Modeling  Compliance Check  Attestation
+3. **Audit Recording**: All decisions  Sovereign Trace  Immutable Storage
+4. **Verification**: External tools  Trace Validation  Compliance Reports
 
 ### Key Data Structures
 
@@ -355,7 +355,7 @@ pub struct TriEntityState {
 
 **Attestation Flow**:
 ```
-Decision → SHA-256 Hash → Sign with Private Key → Chain with Previous Hash
+Decision  SHA-256 Hash  Sign with Private Key  Chain with Previous Hash
 ```
 
 ### Access Control
@@ -429,7 +429,7 @@ Decision → SHA-256 Hash → Sign with Private Key → Chain with Previous Hash
 
 ### Determinism Guarantees
 
-- **Input Determinism**: Identical inputs → Identical outputs
+- **Input Determinism**: Identical inputs  Identical outputs
 - **Timing Determinism**: Bounded execution time
 - **Memory Determinism**: Bounded resource usage
 - **Execution Determinism**: Single-threaded, no concurrency
