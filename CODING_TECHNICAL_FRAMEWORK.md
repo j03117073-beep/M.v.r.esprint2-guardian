@@ -1,5 +1,7 @@
 # Coding Technical Framework
 
+Last reviewed: April 7, 2026
+
 This document outlines the technical framework and best practices for developing, testing, and maintaining the **M.V.R. ESPRINT1** codebase.
 
 ## 1. Goals

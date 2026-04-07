@@ -1,5 +1,7 @@
 # Deterministic Implementation Checklist
 
+Last reviewed: April 7, 2026
+
 ## Purpose
 Execution checklist for completing deterministic tri-faction integration in this order:
 1. architecture lock

@@ -1,5 +1,7 @@
 # M.V.R.E / sprint1 / Guardian Visual Architecture
 
+Last reviewed: April 7, 2026
+
 ## High-Level Topology
 ```mermaid
 flowchart LR

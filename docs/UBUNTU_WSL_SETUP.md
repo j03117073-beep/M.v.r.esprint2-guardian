@@ -1,6 +1,8 @@
 # Ubuntu WSL Setup
 
-This note captures the verified Rust development setup used for M.V.R.ESPRINT1 on April 6, 2026.
+Last reviewed: April 7, 2026
+
+This note captures the verified Rust development setup used for M.V.R.ESPRINT1. Latest validated setup run: April 6, 2026.
 
 ## Verified Environment
 

@@ -1,5 +1,7 @@
 # TLBSS Distributed Architecture Lock
 
+Last reviewed: April 7, 2026
+
 ## Purpose
 This document locks the deterministic implementation architecture for the tri-faction system:
 - `M.V.R.E` (central control center)
@@ -80,4 +82,3 @@ If Guardian originates semantic state, the implementation is non-compliant.
 ## Visual Reference
 See:
 - `docs/MVRE_SPRINT1_GUARDIAN_VISUAL_ARCHITECTURE.md`
-

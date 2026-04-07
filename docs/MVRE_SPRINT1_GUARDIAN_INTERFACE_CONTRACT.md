@@ -1,5 +1,7 @@
 # M.V.R.E / sprint1 / Guardian Interface Contract
 
+Last reviewed: April 7, 2026
+
 ## Purpose
 Define the authoritative contract between:
 - `M.V.R.E` (Central Control Center)
