@@ -220,6 +220,12 @@ pub struct IRModule {
 - **Reference sample**: `artifacts/sample_sced.csv`
 - **Processing**: parse, schema-check, deterministic sort, hash-chain rebuild, JSON verdict output
 
+### Telemetry Validation Profile
+
+- **Profile document**: `docs/ERCOT_TELEMETRY_PROFILE.md`
+- **Implementation module**: `src/telemetry.rs`
+- **Core rules**: 2-second scan cadence, 10-second staleness threshold, 2-second latency ceiling, strict quality mask handling
+
 ---
 
 ## Performance Requirements

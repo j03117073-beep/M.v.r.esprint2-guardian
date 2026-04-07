@@ -26,6 +26,7 @@ pub mod failure_axis;
 pub mod fiel;
 pub mod sp_api;
 pub mod testament_audit;
+pub mod telemetry;
 pub mod tlbss_types;
 pub mod zero_state;
 

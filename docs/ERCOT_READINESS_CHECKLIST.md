@@ -17,8 +17,8 @@ Legend: `🔵✓` = completed and evidenced in-repo as of April 7, 2026.
 - [ ] Deterministic replay of representative scenarios verified
 - [ ] 1kHz loop timing bounds measured and documented
 - [ ] Latency jitter envelope documented under expected load
-- [ ] Time synchronization assumptions documented (PTP/NTP/clock source)
-- [ ] Failure mode behavior under degraded timing captured
+- [x] 🔵✓ Time synchronization assumptions documented (PTP/NTP/clock source) (`docs/ERCOT_TELEMETRY_PROFILE.md`)
+- [x] 🔵✓ Failure mode behavior under degraded timing captured (`src/telemetry.rs` tests)
 
 ## 3) Safety and Guardrail Validation
 
@@ -57,7 +57,7 @@ Legend: `🔵✓` = completed and evidenced in-repo as of April 7, 2026.
 - [x] 🔵✓ Pilot objective statement (what success looks like)
 - [x] 🔵✓ Test matrix for normal/degraded/emergency scenarios (`docs/PILOT_TEST_MATRIX.md`)
 - [x] 🔵✓ Sample SovereignTrace bundle with verification steps
-- [ ] Executive summary for non-technical reviewers
+- [x] 🔵✓ Executive summary for non-technical reviewers (`docs/EXECUTIVE_SUMMARY_NON_TECHNICAL.md`)
 - [ ] Technical appendix with reproducible commands
 
 ## 8) Pre-Submission Gate
