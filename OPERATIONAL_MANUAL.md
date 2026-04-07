@@ -1,6 +1,6 @@
 # M.V.R.ESPRINT1 Operational Manual
 
-Version: 0.2.0  
+Version: 0.1.0  
 Last updated: April 7, 2026
 
 ## Purpose
@@ -75,6 +75,10 @@ export SIGNER_MODE=simulation
 cargo run --bin sced_chain -- verify artifacts/sample_sced.csv
 ```
 
+Expected CLI contract:
+
+- `Usage: cargo run --bin sced_chain -- verify <input.csv> [expected_hash]`
+
 ## 2) Generate and verify sample attestations
 
 ```bash
@@ -89,6 +93,10 @@ cargo run --bin demo -- normal
 cargo run --bin demo -- all
 ```
 
+Supported scenarios:
+
+- `normal`, `reserve`, `capacity`, `network`, `collapse`, `all`
+
 ## 4) Start dashboard
 
 ```bash
@@ -99,6 +107,7 @@ Dashboard endpoints:
 
 - `http://127.0.0.1:3000/`
 - `http://127.0.0.1:3000/health`
+- This is a long-running process; stop it with `Ctrl+C` when finished
 
 ## Monitoring and outputs
 

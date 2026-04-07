@@ -1,6 +1,6 @@
 # M.V.R.ESPRINT1 Technical Specifications
 
-Version: 0.2.0  
+Version: 0.1.0  
 Last updated: April 7, 2026
 
 ## 1. System scope
@@ -141,6 +141,8 @@ cargo run --bin pilot_demo
 cargo run --bin verifier pilot_attestation_log.json
 cargo run --bin dashboard
 ```
+
+Validated on April 7, 2026 against current repository build.
 
 ## 12. Related references
 
