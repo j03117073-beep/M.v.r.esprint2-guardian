@@ -43,3 +43,11 @@ Purpose: define the submission-ready test matrix for normal, degraded, and emerg
 - For failures in degraded scenarios, retain full JSON verifier output.
 - For emergency scenarios, retain demo outputs that show scenario label and resulting mapped behavior.
 
+## Deterministic Kernel Path Validation
+
+| ID | Scenario | Command | Expected Result | Primary Evidence |
+|---|---|---|---|---|
+| K-01 | Normal path time invariant | `cargo test validation_matrix::tests::normal_path_valid_case_passes --lib` | Deterministic normal dispatch path passes with balanced-state checks | `src/validation_matrix.rs`, `docs/MARCH22_VALIDATION_MATRIX.md` |
+| K-02 | Degraded stale/held telemetry substitute path | `cargo test validation_matrix::tests::degraded_path_uses_last_good_value_and_warns_err001 --lib` | `ERR_001`-equivalent warning emitted with last-good substitute behavior | `src/validation_matrix.rs`, `src/telemetry.rs` |
+| K-03 | Emergency physics reserve-exhausted path | `cargo test validation_matrix::tests::emergency_physics_load_shed_exec_0x0c_when_reserves_exhausted --lib` | `EXEC_0x0C` emitted and load-shed action selected | `src/validation_matrix.rs`, `src/reliability_controls.rs` |
+| K-04 | Emergency cyber sovereignty breach path | `cargo test validation_matrix::tests::emergency_cyber_halts_0x0b --lib` | `HALT_0x0B` deterministic secure lockdown on unauthorized write attempt | `src/validation_matrix.rs`, `src/reliability_controls.rs` |
