@@ -12,7 +12,7 @@ Execution checklist for completing deterministic tri-faction integration in this
 - [x] TLBSS mapping to `M.V.R.E / sprint1 / Guardian` documented
 - [x] Interface contract documented
 - [x] Visual architecture documented
-- [ ] Architecture docs referenced from top-level `README.md`
+- [x] Architecture docs referenced from top-level `README.md`
 
 ## B. Faction Module Boundaries
 - [x] `src/mvre.rs` created
@@ -47,14 +47,14 @@ Execution checklist for completing deterministic tri-faction integration in this
 - [ ] `invalid_boolean.csv` FAIL `INVALID_BOOLEAN`
 
 ## F. Compliance-Grade Release Gate
-- [ ] `cargo check --lib` pass (blocked in this host: missing `link.exe`)
-- [ ] `cargo test --lib` pass (blocked in this host: missing `link.exe`)
+- [ ] `cargo check --lib` pass (Windows host blockers may apply)
+- [ ] `cargo test --lib` pass (Windows host blockers may apply)
 - [ ] deterministic replay consistency check (same input, same final hash, repeated)
 - [ ] formal status directive updated with latest evidence
 
 ## April 2026 Status Update
 
-- [x] Ubuntu WSL Rust toolchain installed (ustc 1.94.1, cargo 1.94.1)
-- [x] Native Linux build dependencies installed (uild-essential, pkg-config, libssl-dev)
-- [x] cargo check --message-format short passes on Ubuntu 24.04 WSL
-- [ ] cargo test --lib still pending in this verification pass
+- [x] Ubuntu WSL Rust toolchain installed (`rustc 1.94.1`, `cargo 1.94.1`)
+- [x] Native Linux build dependencies installed (`build-essential`, `pkg-config`, `libssl-dev`)
+- [x] `cargo check --message-format short` passes on Ubuntu 24.04 WSL
+- [ ] `cargo test --lib` still pending in this verification pass

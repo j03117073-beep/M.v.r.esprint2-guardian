@@ -1,6 +1,6 @@
 # Executive Summary for Non-Technical Reviewers
 
-Version: 2026-04-07.v1
+Version: 2026-04-07.v2
 Audience: ERCOT and stakeholder reviewers who need outcome, risk, and readiness context without code-level detail.
 
 ## What This Project Is
@@ -20,7 +20,7 @@ For pilot scope, it emphasizes transparency, integrity, and reproducibility.
 - Deterministic CSV verification and chain checking workflows are implemented.
 - Attestation log generation and independent verification tooling are implemented.
 - Adversarial and guardrail-oriented test paths are present in the repository.
-- Compliance mapping and access-boundary documentation are now in place.
+- Compliance mapping and access-boundary documentation are in place.
 
 ## Pilot Scope and Risk Posture
 
@@ -46,3 +46,10 @@ For pilot scope, it emphasizes transparency, integrity, and reproducibility.
 
 If approved to continue, the next milestone should focus on packaging reproducible evidence artifacts and closing remaining security/build gates, not expanding runtime authority.
 
+## Key References
+
+- `README.md`
+- `OPERATIONAL_MANUAL.md`
+- `TECHNICAL_SPECIFICATIONS.md`
+- `PERFORMANCE_REPORT.md`
+- `docs/ERCOT_READINESS_CHECKLIST.md`
