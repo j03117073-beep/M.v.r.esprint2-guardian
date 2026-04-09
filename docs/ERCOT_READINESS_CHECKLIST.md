@@ -15,8 +15,8 @@ Legend: `PASS` = completed and evidenced in-repo as of April 7, 2026.
 ## 2) Determinism and Timing Evidence
 
 - [x] PASS Deterministic replay of representative scenarios verified
-- [ ] 1kHz loop timing bounds measured and documented
-- [ ] Latency jitter envelope documented under expected load
+- [x] PASS 1kHz loop timing bounds measured and documented (`docs/TIMING_JITTER_REPORT.md`)
+- [x] PASS Latency jitter envelope documented under expected load (`docs/TIMING_JITTER_REPORT.md`)
 - [x] PASS Time synchronization assumptions documented (`docs/ERCOT_TELEMETRY_PROFILE.md`)
 - [x] PASS Failure mode behavior under degraded timing captured (`src/telemetry.rs` tests)
 
@@ -95,3 +95,4 @@ evidence/
 - [x] PASS Compliance mapping and access-control matrix documented in `docs/compliance_mapping.md`
 - [x] PASS Release build completed on workspace host (`cargo build --release`)
 - [x] PASS Release binary smoke check completed (`target/release/sced_chain.exe verify test_vectors/gold_truth_sced_20260322_1805.csv`)
+- [x] PASS Timing/jitter evidence captured (`docs/TIMING_JITTER_REPORT.md`)
