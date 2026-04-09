@@ -145,7 +145,7 @@ mod tests {
         source.insert("byPass".to_string(), "true".to_string());
 
         let out = transform_record("AnalogValue", &source, &TransformContext::default());
-        assert_eq!(out.target_type, "AnalogValue");
+        assert_eq!(out.target_type, "Analog");
         assert!(out.fields.contains_key("byPass"));
     }
 

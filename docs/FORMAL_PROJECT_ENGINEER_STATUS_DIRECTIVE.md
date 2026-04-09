@@ -2,7 +2,7 @@
 
 To: Lead Project Engineer  
 From: Engineering Implementation Team  
-Date: April 7, 2026  
+Date: April 8, 2026  
 Subject: Deterministic TLBSS Distribution Status and Execution Directive (Updated)
 
 ## Executive Status
@@ -17,6 +17,10 @@ The architecture split for `M.V.R.E`, `sprint1`, and `Guardian` is now formally 
 5. Adversarial test-vector fixtures are present in `test_vectors/`.
 6. Interface and visual architecture contract documents are committed.
 7. TLBSS distributed architecture lock added for tri-faction mapping.
+8. Adversarial verifier vector gate executed with expected PASS/FAIL outcomes.
+9. `cargo check --lib` and `cargo test --lib` passed (`80 passed; 0 failed`).
+10. CLI verifier now supports optional expected record-count binding via `--records-total`.
+11. Deterministic replay re-run produced identical final chain hash across repeated runs.
 
 ## Deterministic Controls Currently Enforced
 1. Schema header lock (name and order) at parser boundary.
@@ -42,11 +46,9 @@ These boundaries are required for clean auditability and regulator-facing tracea
 5. Runtime outputs must be replay-identical across environments.
 
 ## Immediate Execution Order
-1. Implement faction module skeletons in Rust and wire in `lib.rs`.
-2. Bind `sprint1` output contract to both `mvre` and `guardian` intake contracts.
-3. Add deterministic unit tests for faction boundary guarantees.
-4. Run `cargo check --lib` and `cargo test --lib`.
-5. Publish verification summary and residual risk list.
+1. Preserve locked deterministic interfaces and avoid cross-module shared mutable state.
+2. Continue ERCOT readiness evidence collection for timing, operations, and security gates.
+3. Publish verification summary and residual risk list.
 
 ## Release Gate
 No merge to mainline until:

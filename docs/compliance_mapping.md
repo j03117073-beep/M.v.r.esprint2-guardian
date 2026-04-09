@@ -57,3 +57,19 @@ Assumptions version: `2026-04-07.v1`
 | PRC-001 / PRC-024 | UFRT and ride-through envelope | `src/reliability_controls.rs` (`prc001_ufrt_trip_required`, `prc024_enforce_envelope`) | `Err003` / `Err004` |
 | FAC-008-3 | Thermal SOL normal/emergency enforcement | `src/reliability_controls.rs` (`evaluate_fac008`) | `ErrFac008` |
 | CIP-007-6 / CIP-011-2 | Default-deny ports/services and topology integrity | `src/reliability_controls.rs` (`enforce_cip007`, `enforce_cip011_topology_integrity`) | `HaltCip001` |
+
+## Build Environment Guidance
+
+Canonical build environment (submission/repro):
+- Linux host (RHEL/Ubuntu) with project on native Linux filesystem.
+- Required: Rust toolchain per `rust-toolchain.toml`, `cargo build --release`, and SHA-256 hash capture.
+
+Developer convenience environment:
+- WSL2 on Windows is acceptable, but builds are slower on `/mnt/c/...`.
+- Prefer copying repo to `~/M.V.R.ESPRINT1` inside WSL for faster I/O.
+
+Repro evidence expectations:
+- Provide release build logs, binary hashes, and a small smoke test output.
+- Example commands: `cargo build --release`, `Get-FileHash -Algorithm SHA256 target/release/*.exe`.
+
+Appendix: Build Environment Guidance -> docs/BUILD_ENVIRONMENT_GUIDANCE.md

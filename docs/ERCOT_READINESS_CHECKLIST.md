@@ -9,12 +9,12 @@ Legend: `PASS` = completed and evidenced in-repo as of April 7, 2026.
 - [ ] CI passes on `main` for `fmt`, `clippy`, `check`, `test`
 - [x] PASS Pinned Rust toolchain documented (`rust-toolchain.toml` or equivalent)
 - [ ] `Cargo.lock` committed and reproducible builds verified
-- [ ] Release build succeeds (`cargo build --release`)
+- [x] PASS Release build succeeds (`cargo build --release`)
 - [x] PASS No `unsafe` blocks introduced (`#![deny(unsafe_code)]` remains enforced)
 
 ## 2) Determinism and Timing Evidence
 
-- [ ] Deterministic replay of representative scenarios verified
+- [x] PASS Deterministic replay of representative scenarios verified
 - [ ] 1kHz loop timing bounds measured and documented
 - [ ] Latency jitter envelope documented under expected load
 - [x] PASS Time synchronization assumptions documented (`docs/ERCOT_TELEMETRY_PROFILE.md`)
@@ -93,4 +93,5 @@ evidence/
 - [x] PASS Ubuntu 24.04 WSL development environment documented with required packages
 - [x] PASS Workspace build verification command documented as `cargo check --message-format short`
 - [x] PASS Compliance mapping and access-control matrix documented in `docs/compliance_mapping.md`
-- [ ] Release build and binary smoke test evidence still need a clean post-restart WSL run
+- [x] PASS Release build completed on workspace host (`cargo build --release`)
+- [x] PASS Release binary smoke check completed (`target/release/sced_chain.exe verify test_vectors/gold_truth_sced_20260322_1805.csv`)

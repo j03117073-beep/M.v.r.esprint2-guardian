@@ -17,7 +17,7 @@ fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.len() < 3 {
         return Err(
-            "Usage: cargo run --bin sced_chain -- verify <input.csv> [expected_hash]".to_string(),
+            "Usage: cargo run --bin sced_chain -- verify <input.csv> [expected_hash] [--records-total <usize>]".to_string(),
         );
     }
 
@@ -27,7 +27,31 @@ fn run() -> Result<(), String> {
     }
 
     let input_path = &args[2];
-    let expected_hash = args.get(3).map(String::as_str);
+    let mut expected_hash: Option<&str> = None;
+    let mut expected_records_total: Option<usize> = None;
+    let mut i = 3usize;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--records-total" => {
+                let raw = args
+                    .get(i + 1)
+                    .ok_or_else(|| "--records-total requires a numeric value".to_string())?;
+                let parsed = raw.parse::<usize>().map_err(|_| {
+                    format!("invalid --records-total value '{}': expected usize", raw)
+                })?;
+                expected_records_total = Some(parsed);
+                i += 2;
+            }
+            value => {
+                if expected_hash.is_none() {
+                    expected_hash = Some(value);
+                    i += 1;
+                } else {
+                    return Err(format!("Unexpected argument '{}'", value));
+                }
+            }
+        }
+    }
 
     let file = File::open(input_path)
         .map_err(|e| format!("Failed to open input CSV '{}': {}", input_path, e))?;
@@ -62,7 +86,7 @@ fn run() -> Result<(), String> {
     // Run verifier contract from an independently re-opened input stream.
     let file_again = File::open(input_path)
         .map_err(|e| format!("Failed to reopen input CSV '{}': {}", input_path, e))?;
-    let report = verify_csv(file_again, expected_hash, None);
+    let report = verify_csv(file_again, expected_hash, expected_records_total);
 
     println!(
         "[INFO] chain_rebuild_complete final_chain_hash={}",
