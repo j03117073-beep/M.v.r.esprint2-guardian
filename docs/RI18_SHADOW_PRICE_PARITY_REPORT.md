@@ -25,9 +25,20 @@ Module:
 - `proxy_parity_and_congestion_checks_pass` -> PASS
 - `flags_halt_threshold_without_price_uplift` -> FAIL expected (guard works)
 - `flags_battery_ecrs_violation` -> FAIL expected (guard works)
+- `march22_proxy_snapshot_parity_passes` -> PASS
 
 ## Pending for Full Parity Claim
 
-- Ingest `ERCOT_SCED_PHYSICS_20260322_PROXY.csv` into the parity checker.
-- Wire kernel shadow-price outputs into `ShadowPriceKernelRow` inputs.
+## March 22 Proxy Snapshot
 
+File:
+- `data/ERCOT_SCED_PHYSICS_20260322_PROXY.csv`
+
+SHA-256:
+- `b07cca013e2bdc3e47f60d3f732df149fd15411bbbdf7e6e5e42821b7ceddee8`
+
+Result:
+- Parity check passed at tolerance `1e-6`.
+
+Remaining gate for full external parity:
+- Wire kernel shadow-price outputs into `ShadowPriceKernelRow` inputs for production data replay.
