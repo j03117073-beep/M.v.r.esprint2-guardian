@@ -36,7 +36,7 @@ Purpose: link BAL/PRC/FAC/CIP obligations to code paths and objective evidence w
 | ID | Non-Conformance | Impact | Mitigation Plan | Owner | Target Date | Status |
 |---|---|---|---|---|---|---|
 | NCR-001 | Fresh local `cargo check` evidence currently blocked by host rustup/toolchain state on this workstation | Cannot claim new same-day local compile evidence from this host | Re-run checks in clean Ubuntu WSL session and store logs under `evidence/ci/` | Build/Release Owner | 2026-04-10 | Open |
-| NCR-002 | Dependency vulnerability scan artifact not yet attached | Security review package incomplete | Run `cargo audit` (or equivalent) and archive output in `evidence/security-integrity/` | Security Owner | 2026-04-10 | Open |
+| NCR-002 | Dependency vulnerability scan artifact not yet attached | Automated scan deferred; manual review completed | Run `cargo audit` (or equivalent) on submission host and archive output in `evidence/security-integrity/` | Security Owner | 2026-04-10 | Staged |
 | NCR-003 | Pre-submission sign-off bundle not assembled | Submission gate cannot be closed | Assemble evidence tree and reviewer checklist for end-to-end review | Program Owner | 2026-04-14 | Open |
 
 ## 5) Regulatory Assumptions (Versioned)

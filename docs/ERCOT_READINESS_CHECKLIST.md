@@ -34,7 +34,7 @@ Legend: `PASS` = completed and evidenced in-repo as of April 7, 2026.
 - [ ] Signature and attestation verification tests pass
 - [x] PASS Access control boundaries documented for all actors/interfaces
 - [x] PASS Threat scenarios exercised in adversarial harness
-- [ ] Dependency vulnerability scan completed and reviewed
+- [ ] Dependency vulnerability scan completed and reviewed (manual review staged; automated scan pending)
 
 ## 5) Compliance Mapping Package
 
