@@ -33,3 +33,16 @@ Smoke validation:
 - Hashes were generated using PowerShell `Get-FileHash -Algorithm SHA256`.
 - This evidence can be reused for environment parity checks across Ubuntu/RHEL hosts.
 
+## April 11, 2026 Onboarding Run
+
+Source:
+- `ercot_onboard.sh` (WSL Ubuntu run)
+
+Output:
+- `READY_FOR_ERCOT_REVIEW.txt`
+
+Summary:
+- `ri04=PASS`
+- `ri12=PASS`
+- `ri18=PASS`
+- `sha256=06a32540ccbb5d3754e9883422a3355c7435d3326ef2f2c69f6d74918a2a4001`

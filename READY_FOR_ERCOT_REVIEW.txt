@@ -1,0 +1,8 @@
+READY_FOR_ERCOT_REVIEW
+timestamp_utc=2026-04-11T20:39:28Z
+toolchain=cargo 1.94.1
+ri04=PASS
+ri12=PASS
+ri18=PASS
+binary=target/release/sced_chain
+sha256=06a32540ccbb5d3754e9883422a3355c7435d3326ef2f2c69f6d74918a2a4001
