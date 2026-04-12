@@ -27,6 +27,8 @@ pub mod fiel;
 pub mod sp_api;
 pub mod testament_audit;
 pub mod telemetry;
+pub mod trusted_time;
+pub mod tpm_attestation;
 pub mod tlbss_types;
 pub mod validation_matrix;
 pub mod zero_state;

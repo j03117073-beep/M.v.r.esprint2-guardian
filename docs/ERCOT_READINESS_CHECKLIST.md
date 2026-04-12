@@ -20,6 +20,16 @@ Legend: `PASS` = completed and evidenced in-repo as of April 7, 2026.
 - [x] PASS Time synchronization assumptions documented (`docs/ERCOT_TELEMETRY_PROFILE.md`)
 - [x] PASS Failure mode behavior under degraded timing captured (`src/telemetry.rs` tests)
 
+### Time Integrity and Clock Discipline (CRITICAL)
+
+- [ ] GPS or PTP-backed time synchronization implemented for authoritative event timing (not NTP-only)
+- [ ] Monotonic clock enforcement added to event ingest/replay paths to prevent timestamp regression
+- [ ] Timestamp signing integrated and included inside canonical hash payloads and chain verification
+
+Why it matters:
+- Required for defensible event reconstruction under NERC/CIP evidence expectations
+- Prevents "reordered truth" attacks where event ordering is manipulated after capture
+
 ## 3) Safety and Guardrail Validation
 
 - [ ] Unsafe transitions blocked by `audit_guardian` in tests
@@ -32,6 +42,9 @@ Legend: `PASS` = completed and evidenced in-repo as of April 7, 2026.
 
 - [ ] Cryptographic hash chain validated end-to-end
 - [ ] Signature and attestation verification tests pass
+- [x] PASS Operator identity binding recorded per action (`ActorContext` embedded in attestation records)
+- [x] PASS Command and artifact signatures verified for non-repudiation (`src/sovereign_kernel.rs`, `src/bin/verifier.rs`)
+- [x] PASS Role-based execution controls enforced pre-execution and replay-verified (RBAC + approval checks)
 - [x] PASS Access control boundaries documented for all actors/interfaces
 - [x] PASS Threat scenarios exercised in adversarial harness
 - [ ] Dependency vulnerability scan completed and reviewed (manual review staged; automated scan pending)
@@ -60,6 +73,7 @@ Legend: `PASS` = completed and evidenced in-repo as of April 7, 2026.
 - [x] PASS Executive summary for non-technical reviewers (`docs/EXECUTIVE_SUMMARY_NON_TECHNICAL.md`)
 - [x] PASS Performance summary linked (`PERFORMANCE_REPORT.md`)
 - [ ] Technical appendix with reproducible commands
+- [x] PASS Audit chain ticket export includes barcode-friendly payload and SVG artifact (`artifacts/audit_chain_ticket.txt`, `artifacts/audit_chain_ticket_barcode.svg`)
 
 ## 8) Pre-Submission Gate
 
