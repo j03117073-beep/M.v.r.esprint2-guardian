@@ -1,0 +1,37 @@
+{
+  "ri04_decision_hash_hex": "b07cca013e2bdc3e47f60d3f732df149fd15411bbbdf7e6e5e42821b7ceddee8",
+  "shadow_records_total": 3,
+  "shadow_final_chain_hash_hex": "aecbb04a1276d483e0ff82382c643f430132a672a9b04205f5ae125fcadffafc",
+  "shadow_chain_records": [
+    {
+      "index": 0,
+      "scd_timestamp": "2026-03-22T18:05:00Z",
+      "repeat_hour_flag": false,
+      "resource_name": "BATT_WEST_1",
+      "offer_type": "ENERGY",
+      "shadow_price": 0.0,
+      "row_hash_hex": "4611e1666c92791ed721efa7e39dc4ef7ace635b462731313b5f79b6695d74d5",
+      "chain_hash_hex": "04648bdf0ecadffe6aae636ed4f1de65ef6fa384bd4e972522bd7ae8354fc70b"
+    },
+    {
+      "index": 1,
+      "scd_timestamp": "2026-03-22T18:05:00Z",
+      "repeat_hour_flag": false,
+      "resource_name": "GEN_SOUTH_A",
+      "offer_type": "ENERGY",
+      "shadow_price": 0.0,
+      "row_hash_hex": "2074917d591e40280131f29709f9e373ff333af7867ea18bc31a129045e45a36",
+      "chain_hash_hex": "078a9087c77d9c2fa18d7a2bfc88bda5d6ee84867f59990b494153f64154bb29"
+    },
+    {
+      "index": 2,
+      "scd_timestamp": "2026-03-22T18:05:00Z",
+      "repeat_hour_flag": false,
+      "resource_name": "L1_CONSTRAINT",
+      "offer_type": "RELIABILITY",
+      "shadow_price": 9001.0,
+      "row_hash_hex": "40dc706f5ba4a92ec68d82396b4a1bec9d408c7102ec4a507ad77e458e720ad9",
+      "chain_hash_hex": "aecbb04a1276d483e0ff82382c643f430132a672a9b04205f5ae125fcadffafc"
+    }
+  ]
+}

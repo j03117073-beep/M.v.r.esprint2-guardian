@@ -1,7 +1,23 @@
+// Copyright (c) 2026 OBINNA JAMES EJIOFOR
+// All Rights Reserved.
+//
+// This file is part of the M.V.R.ESPRINT1 Sovereign Execution System,
+// including TLBSS geometry, the Universal Execution Layer, the
+// Deterministic IR, Rust Codegen Pipeline, SovereignBus, and the
+// Cryptographic Audit Chain.
+//
+// No part of this file, its algorithms, structures, or designs may be
+// copied, reproduced, modified, distributed, published, sublicensed,
+// reverse-engineered, or used to create derivative works without the
+// express written permission of OBINNA JAMES EJIOFOR.
+//
+// This software contains proprietary trade secrets and confidential
+// intellectual property. Unauthorized use is strictly prohibited.
 #![deny(unsafe_code)]
 
 use crate::ingest::rdf_parser::{EquipmentKind, FixedDec9};
 use crate::topology::graph_builder::{BranchEdge, TopologyGraph};
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
 
@@ -291,6 +307,43 @@ pub fn compare_element_proxy_rows(
     }
 }
 
+/// Deterministic decision hash for RI_04 Ybus outputs.
+///
+/// This hash is stable across platforms and is intended to seed downstream
+/// cryptographic audit chains (for example RI_18 shadow-price chaining).
+pub fn ybus_decision_hash(ybus: &SparseYbus) -> Vec<u8> {
+    let mut entries = ybus.entries.clone();
+    entries.sort_by(|a, b| {
+        a.row_bus
+            .cmp(&b.row_bus)
+            .then_with(|| a.col_bus.cmp(&b.col_bus))
+    });
+
+    let mut hasher = Sha256::new();
+    hasher.update(b"RI04_YBUS_DECISION_V1");
+
+    for bus in &ybus.bus_order {
+        hasher.update((bus.len() as u32).to_le_bytes());
+        hasher.update(bus.as_bytes());
+    }
+
+    for e in entries {
+        hasher.update((e.row_bus.len() as u32).to_le_bytes());
+        hasher.update(e.row_bus.as_bytes());
+        hasher.update((e.col_bus.len() as u32).to_le_bytes());
+        hasher.update(e.col_bus.as_bytes());
+        hasher.update(format!("{:.12}", e.g_pu).as_bytes());
+        hasher.update(format!("{:.12}", e.b_pu).as_bytes());
+    }
+
+    for zib in &ybus.zib_penalty_branches {
+        hasher.update((zib.len() as u32).to_le_bytes());
+        hasher.update(zib.as_bytes());
+    }
+
+    hasher.finalize().to_vec()
+}
+
 pub fn derive_branch_series_row(branch: &BranchEdge, cfg: &YbusConfig) -> ElementProxyRow {
     let r = branch.r.as_ref().map(fixed_to_f64).unwrap_or(0.0);
     let x = branch.x.as_ref().map(fixed_to_f64).unwrap_or(0.0);
@@ -550,4 +603,32 @@ mod tests {
         assert!(report.mae < 1e-7);
         assert!(report.max_abs_error < 1e-7);
     }
+
+    #[test]
+    fn ybus_decision_hash_is_deterministic_for_reordered_entries() {
+        let a = SparseYbus {
+            bus_order: vec!["B".to_string(), "A".to_string()],
+            entries: vec![
+                SparseYbusEntry {
+                    row_bus: "B".to_string(),
+                    col_bus: "A".to_string(),
+                    g_pu: -1.0,
+                    b_pu: 9.0,
+                },
+                SparseYbusEntry {
+                    row_bus: "A".to_string(),
+                    col_bus: "A".to_string(),
+                    g_pu: 1.0,
+                    b_pu: -9.0,
+                },
+            ],
+            zib_penalty_branches: vec!["SW1".to_string()],
+        };
+
+        let mut b = a.clone();
+        b.entries.reverse();
+
+        assert_eq!(ybus_decision_hash(&a), ybus_decision_hash(&b));
+    }
 }
+

@@ -1,7 +1,23 @@
+// Copyright (c) 2026 OBINNA JAMES EJIOFOR
+// All Rights Reserved.
+//
+// This file is part of the M.V.R.ESPRINT1 Sovereign Execution System,
+// including TLBSS geometry, the Universal Execution Layer, the
+// Deterministic IR, Rust Codegen Pipeline, SovereignBus, and the
+// Cryptographic Audit Chain.
+//
+// No part of this file, its algorithms, structures, or designs may be
+// copied, reproduced, modified, distributed, published, sublicensed,
+// reverse-engineered, or used to create derivative works without the
+// express written permission of OBINNA JAMES EJIOFOR.
+//
+// This software contains proprietary trade secrets and confidential
+// intellectual property. Unauthorized use is strictly prohibited.
 #![deny(unsafe_code)]
 
 use std::collections::BTreeMap;
 use std::io::Read;
+use sha2::{Digest, Sha256};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ShadowPriceConfig {
@@ -70,6 +86,26 @@ pub struct ShadowPriceReport {
     pub mae: f64,
     pub pass: bool,
     pub mismatches: Vec<ShadowPriceMismatch>,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct ShadowPriceChainRecord {
+    pub index: usize,
+    pub scd_timestamp: String,
+    pub repeat_hour_flag: bool,
+    pub resource_name: String,
+    pub offer_type: String,
+    pub shadow_price: f64,
+    pub row_hash_hex: String,
+    pub chain_hash_hex: String,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct ShadowPriceChainReport {
+    pub ri04_decision_hash_hex: String,
+    pub records_total: usize,
+    pub final_chain_hash_hex: String,
+    pub records: Vec<ShadowPriceChainRecord>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -296,6 +332,55 @@ pub fn verify_shadow_price_parity(
     }
 }
 
+pub fn build_shadow_price_chain(
+    rows: &[ProxySnapshotRow],
+    ri04_decision_hash: &[u8],
+) -> ShadowPriceChainReport {
+    let mut ordered = rows.to_vec();
+    ordered.sort_by(|a, b| {
+        a.scd_timestamp
+            .cmp(&b.scd_timestamp)
+            .then_with(|| a.repeat_hour_flag.cmp(&b.repeat_hour_flag))
+            .then_with(|| a.resource_name.cmp(&b.resource_name))
+            .then_with(|| a.offer_type.cmp(&b.offer_type))
+    });
+
+    let mut records = Vec::with_capacity(ordered.len());
+    let mut prev_chain = seed_shadow_price_chain(ri04_decision_hash);
+
+    for (idx, row) in ordered.iter().enumerate() {
+        let canonical_row = canonical_shadow_row(row);
+        let row_hash = Sha256::digest(canonical_row.as_bytes()).to_vec();
+
+        let mut chain_hasher = Sha256::new();
+        chain_hasher.update(&prev_chain);
+        chain_hasher.update(ri04_decision_hash);
+        chain_hasher.update((idx as u64).to_le_bytes());
+        chain_hasher.update(&row_hash);
+        let chain_hash = chain_hasher.finalize().to_vec();
+
+        records.push(ShadowPriceChainRecord {
+            index: idx,
+            scd_timestamp: row.scd_timestamp.clone(),
+            repeat_hour_flag: row.repeat_hour_flag,
+            resource_name: row.resource_name.clone(),
+            offer_type: row.offer_type.clone(),
+            shadow_price: row.shadow_price,
+            row_hash_hex: hex::encode(&row_hash),
+            chain_hash_hex: hex::encode(&chain_hash),
+        });
+
+        prev_chain = chain_hash;
+    }
+
+    ShadowPriceChainReport {
+        ri04_decision_hash_hex: hex::encode(ri04_decision_hash),
+        records_total: records.len(),
+        final_chain_hash_hex: hex::encode(prev_chain),
+        records,
+    }
+}
+
 fn parse_bool(raw: &str) -> Result<bool, ShadowPriceCsvError> {
     match raw.trim() {
         "true" => Ok(true),
@@ -311,6 +396,29 @@ fn parse_f64(raw: &str, field: &str) -> Result<f64, ShadowPriceCsvError> {
     raw.trim().parse::<f64>().map_err(|_| {
         ShadowPriceCsvError::CsvMalformed(format!("invalid {field} value '{raw}'"))
     })
+}
+
+fn seed_shadow_price_chain(ri04_decision_hash: &[u8]) -> Vec<u8> {
+    let mut seed = Sha256::new();
+    seed.update(b"RI18_SHADOW_CHAIN_V1");
+    seed.update((ri04_decision_hash.len() as u32).to_le_bytes());
+    seed.update(ri04_decision_hash);
+    seed.finalize().to_vec()
+}
+
+fn canonical_shadow_row(row: &ProxySnapshotRow) -> String {
+    format!(
+        "{}|{}|{}|{}|{:.6}|{:.6}|{:.6}|{:.6}|{:.6}",
+        row.scd_timestamp,
+        row.repeat_hour_flag,
+        row.resource_name,
+        row.offer_type,
+        row.price,
+        row.quantity,
+        row.shadow_price,
+        row.system_lambda,
+        row.ecrs_reservation
+    )
 }
 
 #[cfg(test)]
@@ -414,4 +522,44 @@ mod tests {
         assert!(report.pass);
         assert!(report.max_abs_error <= ShadowPriceConfig::default().parity_tolerance);
     }
+
+    #[test]
+    fn shadow_price_chain_is_deterministic_and_seeded_by_ri04_hash() {
+        let rows = vec![
+            ProxySnapshotRow {
+                scd_timestamp: "2026-03-22T18:05:00Z".to_string(),
+                repeat_hour_flag: false,
+                resource_name: "B".to_string(),
+                offer_type: "ENERGY".to_string(),
+                price: 10.0,
+                quantity: 20.0,
+                shadow_price: 0.5,
+                system_lambda: 30.0,
+                ecrs_reservation: 0.0,
+            },
+            ProxySnapshotRow {
+                scd_timestamp: "2026-03-22T18:05:00Z".to_string(),
+                repeat_hour_flag: false,
+                resource_name: "A".to_string(),
+                offer_type: "ENERGY".to_string(),
+                price: 11.0,
+                quantity: 21.0,
+                shadow_price: 0.6,
+                system_lambda: 31.0,
+                ecrs_reservation: 0.1,
+            },
+        ];
+
+        let ri04_a = vec![1u8; 32];
+        let ri04_b = vec![2u8; 32];
+        let chain_a = build_shadow_price_chain(&rows, &ri04_a);
+        let chain_a2 = build_shadow_price_chain(&rows, &ri04_a);
+        let chain_b = build_shadow_price_chain(&rows, &ri04_b);
+
+        assert_eq!(chain_a.final_chain_hash_hex, chain_a2.final_chain_hash_hex);
+        assert_ne!(chain_a.final_chain_hash_hex, chain_b.final_chain_hash_hex);
+        assert_eq!(chain_a.records_total, 2);
+        assert_eq!(chain_a.records[0].resource_name, "A");
+    }
 }
+

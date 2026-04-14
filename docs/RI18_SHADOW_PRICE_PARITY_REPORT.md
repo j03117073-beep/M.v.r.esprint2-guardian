@@ -42,3 +42,26 @@ Result:
 
 Remaining gate for full external parity:
 - Wire kernel shadow-price outputs into `ShadowPriceKernelRow` inputs for production data replay.
+
+## RI_04 -> RI_18 Cryptographic Chain (Full-Stack Audit Link)
+
+Implemented:
+- Deterministic RI_04 decision-hash primitive: `topology::ybus::ybus_decision_hash`.
+- Deterministic RI_18 shadow-price hash chain seeded by RI_04 decision hash:
+  `economics::shadow_prices::build_shadow_price_chain`.
+- CLI artifact generator:
+  `cargo run --bin full_stack_grid_audit -- <shadow_proxy_csv> (--ri04-hash <hex32> | --ri04-ybus-csv <ybus.csv>) [output_json]`
+
+Execution evidence (April 14, 2026):
+- Command:
+  `cargo run --bin full_stack_grid_audit -- data/ERCOT_SCED_PHYSICS_20260322_PROXY.csv --ri04-hash b07cca013e2bdc3e47f60d3f732df149fd15411bbbdf7e6e5e42821b7ceddee8 artifacts/full_stack_grid_audit.json`
+- RI_18 final chain hash:
+  `aecbb04a1276d483e0ff82382c643f430132a672a9b04205f5ae125fcadffafc`
+- Records chained:
+  `3`
+- Artifact:
+  `artifacts/full_stack_grid_audit.json`
+
+Note:
+- The above run uses the provided RI_04 seed hash value via `--ri04-hash`.
+- For strict RI_04-origin linkage from an actual sparse-Ybus export, use `--ri04-ybus-csv` and derive the seed directly from parsed Ybus entries.
