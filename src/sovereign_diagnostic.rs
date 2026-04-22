@@ -13,6 +13,7 @@ pub struct SovereignDiagnostic {
     pub version: u8,
     pub dtc: String,
     pub canonical_hash: [u8; 32],
+    pub canonical_payload_len: u64,
     pub firmware_hash: [u8; 32],
     #[serde(
         serialize_with = "serialize_signature",
@@ -21,7 +22,7 @@ pub struct SovereignDiagnostic {
     pub signature: [u8; 64],
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DiagnosticVerificationOutcome {
     Valid,
     InvalidSignature,
@@ -88,6 +89,7 @@ pub fn emit_signed_diagnostic(
         version,
         dtc,
         canonical_hash,
+        canonical_payload_len: canonical_payload_bytes.len() as u64,
         firmware_hash,
         signature,
     })
@@ -103,13 +105,34 @@ pub fn verify_diagnostic(
     if diagnostic.canonical_hash != recomputed_canonical_hash {
         return DiagnosticVerificationOutcome::HashMismatch;
     }
+    if diagnostic.canonical_payload_len != canonical_payload_bytes.len() as u64 {
+        return DiagnosticVerificationOutcome::HashMismatch;
+    }
+
+    verify_diagnostic_with_canonical_reference(
+        diagnostic,
+        &recomputed_canonical_hash,
+        verifying_key,
+        approved_firmware_hashes,
+    )
+}
+
+pub fn verify_diagnostic_with_canonical_reference(
+    diagnostic: &SovereignDiagnostic,
+    canonical_hash: &[u8; 32],
+    verifying_key: &VerifyingKey,
+    approved_firmware_hashes: &[[u8; 32]],
+) -> DiagnosticVerificationOutcome {
+    if &diagnostic.canonical_hash != canonical_hash {
+        return DiagnosticVerificationOutcome::HashMismatch;
+    }
 
     let expected_diag_hash = diagnostic_hash(
         diagnostic.version,
         &diagnostic.dtc,
         &diagnostic.canonical_hash,
         &diagnostic.firmware_hash,
-        canonical_payload_bytes.len() as u64,
+        diagnostic.canonical_payload_len,
     );
     let sig = ed25519_dalek::Signature::from_bytes(&diagnostic.signature);
     if verifying_key.verify(&expected_diag_hash, &sig).is_err() {
