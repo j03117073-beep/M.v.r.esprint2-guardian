@@ -52,86 +52,36 @@ pub trait ProtocolDriver {
     fn parse_telemetry(&self, payload: &[u8]) -> Result<ParsedTelemetry, SystemHalt>;
 }
 
+macro_rules! impl_protocol_driver {
+    ($struct:ident, $kind:expr, $port:expr, $name:expr) => {
+        impl ProtocolDriver for $struct {
+            fn kind(&self) -> ProtocolKind {
+                $kind
+            }
+            fn validate_endpoint(&self, endpoint: &DiscoveredEndpoint) -> bool {
+                endpoint.port == $port
+            }
+            fn parse_telemetry(&self, payload: &[u8]) -> Result<ParsedTelemetry, SystemHalt> {
+                Ok(ParsedTelemetry {
+                    protocol: $kind,
+                    summary: format!("{} message: {} bytes", $name, payload.len()),
+                })
+            }
+        }
+    };
+}
+
 pub struct Dnp3Driver;
 pub struct ModbusDriver;
 pub struct Iec61850Driver;
 pub struct C37p118Driver;
 pub struct IccpTase2Driver;
 
-impl ProtocolDriver for Dnp3Driver {
-    fn kind(&self) -> ProtocolKind {
-        ProtocolKind::DNP3
-    }
-    fn validate_endpoint(&self, endpoint: &DiscoveredEndpoint) -> bool {
-        endpoint.port == 20000
-    }
-    fn parse_telemetry(&self, payload: &[u8]) -> Result<ParsedTelemetry, SystemHalt> {
-        Ok(ParsedTelemetry {
-            protocol: ProtocolKind::DNP3,
-            summary: format!("DNP3 message: {} bytes", payload.len()),
-        })
-    }
-}
-
-impl ProtocolDriver for ModbusDriver {
-    fn kind(&self) -> ProtocolKind {
-        ProtocolKind::Modbus
-    }
-    fn validate_endpoint(&self, endpoint: &DiscoveredEndpoint) -> bool {
-        endpoint.port == 502
-    }
-    fn parse_telemetry(&self, payload: &[u8]) -> Result<ParsedTelemetry, SystemHalt> {
-        Ok(ParsedTelemetry {
-            protocol: ProtocolKind::Modbus,
-            summary: format!("Modbus message: {} bytes", payload.len()),
-        })
-    }
-}
-
-impl ProtocolDriver for Iec61850Driver {
-    fn kind(&self) -> ProtocolKind {
-        ProtocolKind::IEC61850
-    }
-    fn validate_endpoint(&self, endpoint: &DiscoveredEndpoint) -> bool {
-        endpoint.port == 50000
-    }
-    fn parse_telemetry(&self, payload: &[u8]) -> Result<ParsedTelemetry, SystemHalt> {
-        Ok(ParsedTelemetry {
-            protocol: ProtocolKind::IEC61850,
-            summary: format!("IEC-61850 message: {} bytes", payload.len()),
-        })
-    }
-}
-
-impl ProtocolDriver for C37p118Driver {
-    fn kind(&self) -> ProtocolKind {
-        ProtocolKind::C37p118
-    }
-    fn validate_endpoint(&self, endpoint: &DiscoveredEndpoint) -> bool {
-        endpoint.port == 4712
-    }
-    fn parse_telemetry(&self, payload: &[u8]) -> Result<ParsedTelemetry, SystemHalt> {
-        Ok(ParsedTelemetry {
-            protocol: ProtocolKind::C37p118,
-            summary: format!("C37.118 message: {} bytes", payload.len()),
-        })
-    }
-}
-
-impl ProtocolDriver for IccpTase2Driver {
-    fn kind(&self) -> ProtocolKind {
-        ProtocolKind::IccpTase2
-    }
-    fn validate_endpoint(&self, endpoint: &DiscoveredEndpoint) -> bool {
-        endpoint.port == 102
-    }
-    fn parse_telemetry(&self, payload: &[u8]) -> Result<ParsedTelemetry, SystemHalt> {
-        Ok(ParsedTelemetry {
-            protocol: ProtocolKind::IccpTase2,
-            summary: format!("ICCP-TASE2 message: {} bytes", payload.len()),
-        })
-    }
-}
+impl_protocol_driver!(Dnp3Driver, ProtocolKind::DNP3, 20000, "DNP3");
+impl_protocol_driver!(ModbusDriver, ProtocolKind::Modbus, 502, "Modbus");
+impl_protocol_driver!(Iec61850Driver, ProtocolKind::IEC61850, 50000, "IEC-61850");
+impl_protocol_driver!(C37p118Driver, ProtocolKind::C37p118, 4712, "C37.118");
+impl_protocol_driver!(IccpTase2Driver, ProtocolKind::IccpTase2, 102, "ICCP-TASE2");
 
 pub fn validate_discovered_protocols(endpoints: &[DiscoveredEndpoint]) -> Vec<(String, bool)> {
     endpoints

@@ -39,7 +39,9 @@ pub mod zero_state;
 pub mod ai_ingestion_buffer;
 pub mod capacity_available_to_sced;
 pub mod kernel;
+pub mod kernel_proofs;
 pub mod setpoint_guard;
+pub mod ercot_stress;
 pub mod simulation;
 
 // 2026 Flagship Regulatory Compliance Framework

@@ -101,6 +101,7 @@ fn build_demo_records(count: usize) -> Vec<AttestationRecord> {
                 is_automated: false,
                 trigger: TriggerType::Human,
                 approver_id: Some("shift_supervisor_03".to_string()),
+                operator_ack_token: None,
             }
         } else {
             ActorContext {
@@ -111,6 +112,7 @@ fn build_demo_records(count: usize) -> Vec<AttestationRecord> {
                 is_automated: true,
                 trigger: TriggerType::Automated,
                 approver_id: None,
+                operator_ack_token: None,
             }
         };
 

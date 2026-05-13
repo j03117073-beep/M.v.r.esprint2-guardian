@@ -17,6 +17,7 @@
 
 #![deny(unsafe_code)]
 
+use crate::ercot_stress::StressState;
 use crate::phase_control::PhaseControlGate;
 use crate::failure_axis::SystemHalt;
 
@@ -36,6 +37,71 @@ pub enum GuardResult<T> {
     Valid(T),
     Degraded(T),
     Fault(FaultCode),
+}
+
+impl<T> GuardResult<T> {
+    /// Convert to Result: Valid/Degraded become Ok(value), Fault becomes Err(code)
+    pub fn into_result(self) -> Result<T, FaultCode> {
+        match self {
+            GuardResult::Valid(v) => Ok(v),
+            GuardResult::Degraded(v) => Ok(v),
+            GuardResult::Fault(code) => Err(code),
+        }
+    }
+}
+
+/// Strongly typed wrapper for active power in MW
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ActivePowerMw(pub f64);
+
+impl ActivePowerMw {
+    pub fn new(value: f64) -> Option<Self> {
+        if value.is_finite() {
+            Some(Self(value))
+        } else {
+            None
+        }
+    }
+
+    pub fn value(self) -> f64 {
+        self.0
+    }
+}
+
+/// Strongly typed wrapper for reactive power in MVAr
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ReactivePowerMvar(pub f64);
+
+impl ReactivePowerMvar {
+    pub fn new(value: f64) -> Option<Self> {
+        if value.is_finite() {
+            Some(Self(value))
+        } else {
+            None
+        }
+    }
+
+    pub fn value(self) -> f64 {
+        self.0
+    }
+}
+
+/// Strongly typed wrapper for ramp rate in MW per millisecond
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RampRateMwPerMs(pub f64);
+
+impl RampRateMwPerMs {
+    pub fn new(value: f64) -> Option<Self> {
+        if value.is_finite() && value >= 0.0 {
+            Some(Self(value))
+        } else {
+            None
+        }
+    }
+
+    pub fn value(self) -> f64 {
+        self.0
+    }
 }
 
 /// Simplified representation of an active/reactive power command issued by the
@@ -111,10 +177,75 @@ impl RateLimiter {
             GuardResult::Valid(result)
         }
     }
+
+    /// Apply a dynamic ramp limit based on an external stress factor. This
+    /// supports reserve-sensitive slew limiting in the governance kernel.
+    pub fn apply_with_dynamic_limit(
+        &mut self,
+        desired: &Setpoint,
+        dt_ms: f64,
+        dynamic_ramp_limit: f64,
+    ) -> GuardResult<Setpoint> {
+        if !dt_ms.is_finite() || dt_ms <= 0.0 {
+            return GuardResult::Degraded(self.last);
+        }
+
+        if !desired.p.is_finite() || !desired.q.is_finite() {
+            return GuardResult::Degraded(self.last);
+        }
+
+        let delta_p = (desired.p - self.last.p).abs();
+        let allowed_delta = dynamic_ramp_limit.max(0.0) * dt_ms;
+        let clamped_p = if delta_p > allowed_delta {
+            if desired.p > self.last.p {
+                self.last.p + allowed_delta
+            } else {
+                self.last.p - allowed_delta
+            }
+        } else {
+            desired.p
+        };
+
+        let result = Setpoint {
+            p: clamped_p,
+            q: desired.q,
+            ts: desired.ts,
+        };
+
+        self.last = result;
+        if clamped_p != desired.p {
+            GuardResult::Degraded(result)
+        } else {
+            GuardResult::Valid(result)
+        }
+    }
+}
+
+/// Compute an adaptive ramp limit based on ERCOT reserve margin stress and the
+/// short-term demand acceleration.
+pub fn adaptive_ramp_limit(
+    base_ramp_limit_mw_per_ms: f64,
+    stress_state: StressState,
+    demand_acceleration_mw_per_s: f64,
+) -> f64 {
+    let stress_factor = match stress_state {
+        StressState::Normal => 1.0,
+        StressState::Tight => 0.70,
+        StressState::Emergency => 0.45,
+        StressState::CollapseRisk => 0.20,
+    };
+
+    let acceleration_penalty = (demand_acceleration_mw_per_s / 1_000.0).clamp(0.0, 0.25);
+    (base_ramp_limit_mw_per_ms * (stress_factor - acceleration_penalty)).max(base_ramp_limit_mw_per_ms * 0.10)
 }
 
 /// Enforce active power limits based on available reserve and hard plant
 /// capability.  Returns guard result with possibly modified setpoint.
+///
+/// Invariants:
+/// - Input setpoint must have finite p, q values
+/// - Output p is clamped to [0, physical_max]
+/// - Fault only on invalid input (non-finite p)
 pub fn clamp_active_power(
     cmd: Setpoint,
     physical_max: f64,
@@ -133,6 +264,10 @@ pub fn clamp_active_power(
 
 /// Enforce reactive power (VAR) limits based on a simplified voltage envelope.
 /// Returns guard result with setpoint.
+///
+/// Invariants:
+/// - Reactive power is clamped to prevent voltage excursions
+/// - Fault on invalid input (non-finite q)
 pub fn clamp_reactive_power(
     cmd: Setpoint,
     _v_min: f64,
@@ -144,33 +279,70 @@ pub fn clamp_reactive_power(
     GuardResult::Valid(cmd)
 }
 
+/// Log guard results for telemetry and debugging
+fn log_guard_result<T>(result: &GuardResult<T>) {
+    match result {
+        GuardResult::Degraded(_) => {
+            // In a real system, this would log to telemetry/audit system
+            // For now, we could use eprintln! or a proper logging framework
+            eprintln!("GuardResult: Degraded - setpoint was clamped or rate-limited");
+        }
+        GuardResult::Fault(code) => {
+            eprintln!("GuardResult: Fault - {:?}", code);
+        }
+        GuardResult::Valid(_) => {
+            // Valid results might not need logging, or could be logged at debug level
+        }
+    }
+}
+
 /// Given a desired setpoint and the most recent valid setpoint, produce the
 /// actual command the kernel will forward to the PPC.  This wrapper handles
 /// active and reactive clamping, rate‑limiting, and authority merging.
 pub fn govern_setpoint(
     desired: Setpoint,
-    ramp_limit: f64,
+    limiter: &mut RateLimiter,
     physical_max: f64,
     v_min: f64,
     v_max: f64,
+    dt_ms: f64,
 ) -> GuardResult<Setpoint> {
-    let clamped_p = match clamp_active_power(desired, physical_max, ramp_limit, desired.p) {
-        GuardResult::Fault(code) => return GuardResult::Fault(code),
+    let clamped_p = match clamp_active_power(desired, physical_max, limiter.ramp_limit, desired.p) {
+        GuardResult::Fault(code) => {
+            log_guard_result(&GuardResult::Fault(code));
+            return GuardResult::Fault(code);
+        }
         GuardResult::Degraded(s) => s,
         GuardResult::Valid(s) => s,
     };
     
     let clamped_q = match clamp_reactive_power(clamped_p, v_min, v_max) {
-        GuardResult::Fault(code) => return GuardResult::Fault(code),
+        GuardResult::Fault(code) => {
+            log_guard_result(&GuardResult::Fault(code));
+            return GuardResult::Fault(code);
+        }
         GuardResult::Degraded(s) => s,
         GuardResult::Valid(s) => s,
     };
     
-    // If any clamping occurred, it's degraded
-    if clamped_q.p != desired.p || clamped_q.q != desired.q {
-        GuardResult::Degraded(clamped_q)
-    } else {
-        GuardResult::Valid(clamped_q)
+    // Apply rate limiting
+    let rate_limited = limiter.apply(&clamped_q, dt_ms);
+    
+    // Log if degraded or fault
+    if matches!(rate_limited, GuardResult::Degraded(_) | GuardResult::Fault(_)) {
+        log_guard_result(&rate_limited);
+    }
+    
+    // If any clamping or rate limiting occurred, it's degraded
+    match rate_limited {
+        GuardResult::Valid(s) => {
+            if clamped_q.p != desired.p || clamped_q.q != desired.q {
+                GuardResult::Degraded(s)
+            } else {
+                GuardResult::Valid(s)
+            }
+        }
+        other => other,
     }
 }
 
@@ -180,17 +352,18 @@ pub fn govern_setpoint(
 /// to a narrow phase scope before applying existing deterministic guardrails.
 pub fn govern_setpoint_phase3(
     desired: Setpoint,
-    ramp_limit: f64,
+    limiter: &mut RateLimiter,
     physical_max: f64,
     v_min: f64,
     v_max: f64,
+    dt_ms: f64,
     gate: &PhaseControlGate,
     operator_ack_token: Option<&str>,
 ) -> Result<GuardResult<Setpoint>, SystemHalt> {
     gate.ensure_assisted_control_authorized(operator_ack_token)?;
 
     let scoped = gate.clamp_to_assisted_scope(desired);
-    Ok(govern_setpoint(scoped, ramp_limit, physical_max, v_min, v_max))
+    Ok(govern_setpoint(scoped, limiter, physical_max, v_min, v_max, dt_ms))
 }
 
 #[cfg(test)]
@@ -208,12 +381,14 @@ mod tests {
             },
         };
 
+        let mut limiter = RateLimiter::new(1.0);
         let result = govern_setpoint_phase3(
             Setpoint { p: 5.0, q: 1.0, ts: 1 },
-            1.0,
+            &mut limiter,
             50.0,
             0.95,
             1.05,
+            1.0,
             &gate,
             None,
         );
@@ -232,16 +407,18 @@ mod tests {
             },
         };
 
+        let mut limiter = RateLimiter::new(1.0);
         let guard_result = govern_setpoint_phase3(
             Setpoint {
                 p: 30.0,
                 q: -8.0,
                 ts: 10,
             },
-            1.0,
+            &mut limiter,
             50.0,
             0.95,
             1.05,
+            1.0,
             &gate,
             Some("ack"),
         )
@@ -283,5 +460,62 @@ mod tests {
         // Verify bounded slew rate
         let delta_p = (result.p - limiter.last.p).abs();
         assert!(delta_p <= limiter.ramp_limit * dt_ms);
+    }
+
+    #[cfg(kani)]
+    #[kani::proof]
+    fn prove_govern_setpoint_fault_paths() {
+        let mut limiter = RateLimiter::new(kani::any());
+        let desired: Setpoint = kani::any();
+        let physical_max: f64 = kani::any();
+        let v_min: f64 = kani::any();
+        let v_max: f64 = kani::any();
+        let dt_ms: f64 = kani::any();
+
+        // Assume valid dt_ms
+        kani::assume(dt_ms.is_finite() && dt_ms > 0.0);
+
+        let result = govern_setpoint(desired, &mut limiter, physical_max, v_min, v_max, dt_ms);
+
+        // If input has invalid active power, should fault
+        if !desired.p.is_finite() {
+            assert!(matches!(result, GuardResult::Fault(FaultCode::InvalidActivePower)));
+        }
+
+        // If input has invalid reactive power, should fault
+        if !desired.q.is_finite() {
+            assert!(matches!(result, GuardResult::Fault(FaultCode::InvalidReactivePower)));
+        }
+    }
+
+    #[cfg(kani)]
+    #[kani::proof]
+    fn prove_govern_setpoint_valid_paths() {
+        let mut limiter = RateLimiter::new(kani::any());
+        let desired: Setpoint = kani::any();
+        let physical_max: f64 = kani::any();
+        let v_min: f64 = kani::any();
+        let v_max: f64 = kani::any();
+        let dt_ms: f64 = kani::any();
+
+        // Assume all inputs are finite and valid
+        kani::assume(dt_ms.is_finite() && dt_ms > 0.0);
+        kani::assume(desired.p.is_finite());
+        kani::assume(desired.q.is_finite());
+        kani::assume(physical_max.is_finite() && physical_max >= 0.0);
+
+        let result = govern_setpoint(desired, &mut limiter, physical_max, v_min, v_max, dt_ms);
+
+        // Should not fault with valid inputs
+        assert!(!matches!(result, GuardResult::Fault(_)));
+
+        // Result should have finite values
+        match &result {
+            GuardResult::Valid(s) | GuardResult::Degraded(s) => {
+                assert!(s.p.is_finite());
+                assert!(s.q.is_finite());
+            }
+            _ => {}
+        }
     }
 }
