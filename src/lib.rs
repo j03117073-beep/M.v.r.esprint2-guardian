@@ -41,6 +41,7 @@ pub mod capacity_available_to_sced;
 pub mod kernel;
 pub mod kernel_proofs;
 pub mod setpoint_guard;
+pub mod formal_admissibility;
 pub mod ercot_stress;
 pub mod simulation;
 

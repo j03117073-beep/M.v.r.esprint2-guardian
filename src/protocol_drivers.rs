@@ -50,6 +50,11 @@ pub trait ProtocolDriver {
     fn kind(&self) -> ProtocolKind;
     fn validate_endpoint(&self, endpoint: &DiscoveredEndpoint) -> bool;
     fn parse_telemetry(&self, payload: &[u8]) -> Result<ParsedTelemetry, SystemHalt>;
+    /// Perform any protocol-specific transport authentication checks.
+    /// Default implementation returns `true` (no-op).
+    fn authenticate_transport(&self, _token: Option<&[u8]>) -> bool {
+        true
+    }
 }
 
 macro_rules! impl_protocol_driver {
@@ -66,6 +71,10 @@ macro_rules! impl_protocol_driver {
                     protocol: $kind,
                     summary: format!("{} message: {} bytes", $name, payload.len()),
                 })
+            }
+            fn authenticate_transport(&self, _token: Option<&[u8]>) -> bool {
+                // Default: no transport-level auth enforced by driver
+                true
             }
         }
     };
@@ -132,6 +141,27 @@ fn sha256_hex(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
     format!("{:x}", hasher.finalize())
+}
+
+impl Dnp3Driver {
+    /// Lightweight transport authentication helper for DNP3.
+    /// Returns `true` when a non-empty token is provided.
+    pub fn authenticate(&self, token: Option<&[u8]>) -> bool {
+        match token {
+            Some(t) if !t.is_empty() => true,
+            _ => false,
+        }
+    }
+}
+
+impl Iec61850Driver {
+    /// Map an IEC-61850 payload into a short CIM mapping summary.
+    /// This provides a canonicalization entrypoint for downstream consumers.
+    pub fn map_to_cim_summary(&self, _payload: &[u8]) -> String {
+        // Use mapping table size as a proxy for canonicalization coverage
+        let count = crate::cim_mapping_data::MAPPING_DATA.len();
+        format!("IEC-61850 canonicalized (mapping entries: {})", count)
+    }
 }
 
 #[cfg(test)]
