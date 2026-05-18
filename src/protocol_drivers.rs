@@ -145,11 +145,24 @@ fn sha256_hex(bytes: &[u8]) -> String {
 
 impl Dnp3Driver {
     /// Lightweight transport authentication helper for DNP3.
-    /// Returns `true` when a non-empty token is provided.
+    /// Lightweight transport authentication helper for DNP3.
+    /// In this minimal implementation the token must match the
+    /// SHA256 hex digest of a test shared secret. This is a
+    /// deterministic placeholder for real transport-level auth.
     pub fn authenticate(&self, token: Option<&[u8]>) -> bool {
+        const TEST_SHARED_SECRET: &[u8] = b"TEST_SHARED_SECRET_V1";
+        let expected = sha256_hex(TEST_SHARED_SECRET);
+
         match token {
-            Some(t) if !t.is_empty() => true,
-            _ => false,
+            Some(t) => {
+                // compare as utf8 hex string
+                if let Ok(s) = std::str::from_utf8(t) {
+                    s == expected
+                } else {
+                    false
+                }
+            }
+            None => false,
         }
     }
 }
@@ -188,5 +201,18 @@ mod tests {
             service: "modbus".to_string(),
         };
         assert!(driver.validate_endpoint(&ep));
+    }
+
+    #[test]
+    fn dnp3_driver_authenticate_checks_secret() {
+        let driver = Dnp3Driver;
+        // expected token is sha256_hex of TEST_SHARED_SECRET_V1
+        const TEST_SHARED_SECRET: &[u8] = b"TEST_SHARED_SECRET_V1";
+        let expected = sha256_hex(TEST_SHARED_SECRET);
+
+        assert!(driver.authenticate(Some(expected.as_bytes())));
+        // wrong token fails
+        assert!(!driver.authenticate(Some(b"badtoken")));
+        assert!(!driver.authenticate(None));
     }
 }
