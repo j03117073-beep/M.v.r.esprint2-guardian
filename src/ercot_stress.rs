@@ -108,13 +108,16 @@ impl ReserveMarginSnapshot {
 
 fn classify_stress(reserve_margin_mw: f64, available_capacity_mw: f64) -> StressState {
     let capacity = available_capacity_mw.max(1.0);
-    let ratio = reserve_margin_mw / capacity;
 
     if reserve_margin_mw <= 0.0 {
-        StressState::CollapseRisk
-    } else if ratio <= 0.05 {
+        return StressState::CollapseRisk;
+    }
+
+    let stress_level = ((capacity - reserve_margin_mw) / capacity).clamp(0.0, 1.0);
+
+    if stress_level >= 0.70 {
         StressState::Emergency
-    } else if ratio <= 0.15 {
+    } else if stress_level >= 0.40 {
         StressState::Tight
     } else {
         StressState::Normal

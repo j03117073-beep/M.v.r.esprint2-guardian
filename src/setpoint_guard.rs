@@ -152,6 +152,17 @@ impl RateLimiter {
             return GuardResult::Degraded(self.last);
         }
 
+        // If this is the first command, initialize the limiter without degradation.
+        if self.last.ts == 0 {
+            let result = Setpoint {
+                p: desired.p,
+                q: desired.q,
+                ts: desired.ts,
+            };
+            self.last = result;
+            return GuardResult::Valid(result);
+        }
+
         let delta_p = (desired.p - self.last.p).abs();
         let allowed_delta = self.ramp_limit * dt_ms;
         let clamped_p = if delta_p > allowed_delta {
@@ -309,8 +320,9 @@ pub fn govern_setpoint(
 ) -> GuardResult<Setpoint> {
     let clamped_p = match clamp_active_power(desired, physical_max, limiter.ramp_limit, desired.p) {
         GuardResult::Fault(code) => {
-            log_guard_result(&GuardResult::Fault(code));
-            return GuardResult::Fault(code);
+            let fault = GuardResult::<Setpoint>::Fault(code);
+            log_guard_result(&fault);
+            return fault;
         }
         GuardResult::Degraded(s) => s,
         GuardResult::Valid(s) => s,
@@ -318,8 +330,9 @@ pub fn govern_setpoint(
     
     let clamped_q = match clamp_reactive_power(clamped_p, v_min, v_max) {
         GuardResult::Fault(code) => {
-            log_guard_result(&GuardResult::Fault(code));
-            return GuardResult::Fault(code);
+            let fault = GuardResult::<Setpoint>::Fault(code);
+            log_guard_result(&fault);
+            return fault;
         }
         GuardResult::Degraded(s) => s,
         GuardResult::Valid(s) => s,
