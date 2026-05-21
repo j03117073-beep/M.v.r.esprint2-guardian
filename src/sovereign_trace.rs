@@ -30,13 +30,15 @@
 pub mod streamer;
 
 use crate::failure_axis::{FailureAxis, SystemHalt};
+use crate::operational_semantics::{OperationalSnapshot, ResolutionCategory, SemanticOutcome};
 use crate::regulatory_policy::{GovernanceMode, LegalCitation};
 use crate::sovereign_bus::{SovereignMessage, ActorId, ActorRole, OriginLanguage, TraceId};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fmt;
+use std::fmt::Write;
 use std::fs::OpenOptions;
-use std::io::Write;
+use std::io::Write as IoWrite;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -173,6 +175,14 @@ pub struct SovereignTrace {
     pub legal_justification: Option<LegalCitation>,
     pub is_authenticated: bool,
     pub state_transition: bool,
+    pub topology_identity: String,
+    pub topology_lineage_hash: Option<String>,
+    pub semantic_spec_identity: String,
+    pub semantic_spec_version: String,
+    pub snapshot_identity: String,
+    pub evaluation_verdict: ResolutionCategory,
+    pub replay_equivalence_id: Option<String>,
+    pub trace_hash: String,
 }
 
 impl SovereignTrace {
@@ -200,7 +210,97 @@ impl SovereignTrace {
             legal_justification: Some(citation),
             is_authenticated: false,
             state_transition: false,
+            topology_identity: String::new(),
+            topology_lineage_hash: None,
+            semantic_spec_identity: String::new(),
+            semantic_spec_version: String::new(),
+            snapshot_identity: String::new(),
+            evaluation_verdict: ResolutionCategory::Informational,
+            replay_equivalence_id: None,
+            trace_hash: String::new(),
         }
+    }
+
+    pub fn attest(
+        tick: u64,
+        requested: f64,
+        actual: f64,
+        mode: GovernanceMode,
+        citation: LegalCitation,
+        snapshot: &OperationalSnapshot,
+        semantics: &SemanticOutcome,
+        replay_equivalence_id: Option<String>,
+    ) -> Result<Self, SystemHalt> {
+        if snapshot.snapshot_identity.is_empty() {
+            return Err(SystemHalt::new(
+                FailureAxis::InternalInvariantBreach,
+                "Cannot attest trace without canonical snapshot identity",
+            ));
+        }
+        if snapshot.topology_identity.is_empty() {
+            return Err(SystemHalt::new(
+                FailureAxis::InternalInvariantBreach,
+                "Cannot attest trace without canonical topology identity",
+            ));
+        }
+        let mut trace = Self {
+            tick,
+            requested_setpoint: requested,
+            actual_setpoint: actual,
+            governance_mode: mode,
+            legal_citation: citation.clone(),
+            timestamp_ms: snapshot.ingest_time_ms_utc,
+            timestamp_us: snapshot.ingest_time_ms_utc * 1000,
+            grid_sigma: 0,
+            ambient_temp: 0.0,
+            inverter_current: 0.0,
+            ai_requested_p: requested,
+            kernel_output_p: actual,
+            active_governance: mode,
+            legal_justification: Some(citation),
+            is_authenticated: true,
+            state_transition: true,
+            topology_identity: snapshot.topology_identity.clone(),
+            topology_lineage_hash: snapshot.topology_lineage_hash.clone(),
+            semantic_spec_identity: snapshot.semantic_spec_identity.clone(),
+            semantic_spec_version: snapshot.semantic_spec_version.clone(),
+            snapshot_identity: snapshot.snapshot_identity.clone(),
+            evaluation_verdict: semantics.resolution_category,
+            replay_equivalence_id,
+            trace_hash: String::new(),
+        };
+        trace.trace_hash = trace.compute_trace_hash();
+        Ok(trace)
+    }
+
+    pub fn compute_trace_hash(&self) -> String {
+        let mut payload = String::new();
+        write!(
+            &mut payload,
+            "tick={}|requested={:.9}|actual={:.9}|governance={:?}|semantic_spec_identity={}|semantic_spec_version={}|topology_identity={}|topology_lineage_hash={}|snapshot_identity={}|evaluation_verdict={:?}|replay_equivalence_id={}|timestamp_ms={}|timestamp_us={}",
+            self.tick,
+            self.requested_setpoint,
+            self.actual_setpoint,
+            self.governance_mode,
+            self.semantic_spec_identity,
+            self.semantic_spec_version,
+            self.topology_identity,
+            self.topology_lineage_hash.clone().unwrap_or_else(|| "NONE".to_string()),
+            self.snapshot_identity,
+            self.evaluation_verdict,
+            self.replay_equivalence_id.clone().unwrap_or_else(|| "NONE".to_string()),
+            self.timestamp_ms,
+            self.timestamp_us,
+        )
+        .unwrap();
+        sha2::Sha256::digest(payload.as_bytes()).iter().map(|b| format!("{:02x}", b)).collect()
+    }
+
+    pub fn is_fully_attested(&self) -> bool {
+        !self.trace_hash.is_empty()
+            && !self.semantic_spec_identity.is_empty()
+            && !self.topology_identity.is_empty()
+            && !self.snapshot_identity.is_empty()
     }
 }
 
@@ -253,6 +353,14 @@ impl TraceBuilder {
             legal_justification: Some(self.legal_citation),
             is_authenticated: false,
             state_transition: false,
+            topology_identity: String::new(),
+            topology_lineage_hash: None,
+            semantic_spec_identity: String::new(),
+            semantic_spec_version: String::new(),
+            snapshot_identity: String::new(),
+            evaluation_verdict: ResolutionCategory::Informational,
+            replay_equivalence_id: None,
+            trace_hash: String::new(),
         }
     }
 }

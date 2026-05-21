@@ -33,9 +33,12 @@
 //! All replay scenarios terminate through the authoritative runtime.rs execution boundary.
 
 use m_v_r_esprint1::{
-    constraint_system::PowerState,
-    demo_pipeline::{evaluate_trajectory, map_violation_to_l7, propose_trajectory_from_snapshot, MarketSnapshot},
-    telemetry::TelemetryPoint,
+    demo_pipeline::{evaluate_trajectory, propose_trajectory_from_snapshot, MarketSnapshot},
+    operational_semantics::{evaluate_infrastructure_semantics, OperatorCommandContext, OperationalSnapshot, SemanticConfig, TopologyEvent},
+    regulatory_policy::{GovernanceMode, LegalCitation},
+    sovereign_trace::SovereignTrace,
+    telemetry::{BreakerState, TelemetryPoint},
+    topology::graph_builder::TopologyGraph,
 };
 use std::time::Instant;
 
@@ -103,6 +106,8 @@ pub struct ValidationScenario {
     pub name: String,
     pub description: String,
     pub events: Vec<ReplayEvent>,
+    pub topology_events: Vec<TopologyEvent>,
+    pub operator_command: Option<OperatorCommandContext>,
     pub expected_admissibility: bool,
 }
 
@@ -125,6 +130,8 @@ impl ValidationScenario {
                     metadata: "spoofed_generation".to_string(),
                 },
             ],
+            topology_events: Vec::new(),
+            operator_command: None,
             expected_admissibility: false,
         }
     }
@@ -147,6 +154,8 @@ impl ValidationScenario {
                     metadata: "capacity_shortage".to_string(),
                 },
             ],
+            topology_events: Vec::new(),
+            operator_command: None,
             expected_admissibility: false,
         }
     }
@@ -169,6 +178,19 @@ impl ValidationScenario {
                     metadata: "extreme_ramp".to_string(),
                 },
             ],
+            topology_events: vec![
+                TopologyEvent {
+                    equipment_id: "BRK_RLY01".to_string(),
+                    breaker_state: BreakerState::Closed,
+                    timestamp_ms_utc: 1000,
+                },
+                TopologyEvent {
+                    equipment_id: "BRK_RLY01".to_string(),
+                    breaker_state: BreakerState::Open,
+                    timestamp_ms_utc: 1002,
+                },
+            ],
+            operator_command: None,
             expected_admissibility: false,
         }
     }
@@ -191,6 +213,8 @@ impl ValidationScenario {
                     metadata: "reserve_shortage".to_string(),
                 },
             ],
+            topology_events: Vec::new(),
+            operator_command: None,
             expected_admissibility: false,
         }
     }
@@ -213,6 +237,8 @@ impl ValidationScenario {
                     metadata: "ordering_violation".to_string(),
                 },
             ],
+            topology_events: Vec::new(),
+            operator_command: None,
             expected_admissibility: false,
         }
     }
@@ -235,6 +261,8 @@ impl ValidationScenario {
                     metadata: "collapse_case".to_string(),
                 },
             ],
+            topology_events: Vec::new(),
+            operator_command: None,
             expected_admissibility: false,
         }
     }
@@ -257,6 +285,13 @@ impl ValidationScenario {
                     metadata: "command_violation".to_string(),
                 },
             ],
+            topology_events: Vec::new(),
+            operator_command: Some(OperatorCommandContext {
+                operator_id: "guest.operator".to_string(),
+                role: "guest".to_string(),
+                command: "dispatch_override".to_string(),
+                authority_level: 1,
+            }),
             expected_admissibility: false,
         }
     }
@@ -279,6 +314,19 @@ impl ValidationScenario {
                     metadata: "escalation_case".to_string(),
                 },
             ],
+            topology_events: vec![
+                TopologyEvent {
+                    equipment_id: "BRK_SAFE01".to_string(),
+                    breaker_state: BreakerState::Closed,
+                    timestamp_ms_utc: 1000,
+                },
+                TopologyEvent {
+                    equipment_id: "BRK_SAFE01".to_string(),
+                    breaker_state: BreakerState::Intermediate,
+                    timestamp_ms_utc: 1002,
+                },
+            ],
+            operator_command: None,
             expected_admissibility: false,
         }
     }
@@ -316,27 +364,20 @@ impl ReplayValidator {
         let start = Instant::now();
         let mut latencies = Vec::new();
 
-        // Convert replay events to market snapshot for constraint evaluation
-        let snapshot = self.events_to_snapshot(&scenario.events);
+        let market_snapshot = self.events_to_snapshot(&scenario.events);
+        let operational_snapshot = self.build_operational_snapshot(scenario);
 
-        // Propose trajectory from snapshot
-        let trajectory = propose_trajectory_from_snapshot(&snapshot);
+        // Authoritative semantic evaluation used by runtime.rs
+        let semantic_outcome = evaluate_infrastructure_semantics(&operational_snapshot, &SemanticConfig::default());
+        let admissible = semantic_outcome.admissible;
 
-        // Evaluate for violations (this is what runtime.rs does in admissibility phase)
+        // Preserve the same trajectory evaluation path for comparison metrics
+        let trajectory = propose_trajectory_from_snapshot(&market_snapshot);
         let violations = evaluate_trajectory(&trajectory);
-        let admissible = violations.is_feasible();
-
-        // Map to L7 event
-        let l7_event = if !admissible {
-            map_violation_to_l7(&violations)
-        } else {
-            None
-        };
 
         let cycle_latency = start.elapsed().as_millis() as f64;
         latencies.push(cycle_latency);
 
-        // Compute determinism metrics
         let jitter_variance = if latencies.len() > 1 {
             let mean = latencies.iter().sum::<f64>() / latencies.len() as f64;
             let variance = latencies
@@ -349,10 +390,27 @@ impl ReplayValidator {
             0.0
         };
 
-        let trace_hash = format!(
-            "{:x}",
-            violations.total() as i64
-        );
+        let requested = operational_snapshot
+            .telemetry
+            .get(0)
+            .map(|p| p.value)
+            .unwrap_or(0.0);
+        let actual = operational_snapshot
+            .telemetry
+            .get(1)
+            .map(|p| p.value)
+            .unwrap_or(requested);
+        let trace = SovereignTrace::attest(
+            scenario.scenario_id as u64,
+            requested,
+            actual,
+            GovernanceMode::Normal,
+            LegalCitation::default(),
+            &operational_snapshot,
+            &semantic_outcome,
+            Some(format!("replay-{}", scenario.scenario_id)),
+        )
+        .expect("Replay trace attestation must succeed");
 
         DeterminismMetrics {
             cycle_id: scenario.scenario_id as u64,
@@ -360,7 +418,7 @@ impl ReplayValidator {
             latency_ms: cycle_latency,
             jitter_variance_us: jitter_variance,
             admissibility_consistent: admissible == scenario.expected_admissibility,
-            trace_hash,
+            trace_hash: trace.trace_hash,
             violations_total_mw: violations.total(),
         }
     }
@@ -438,6 +496,42 @@ impl ReplayValidator {
             reserve_margin_mw,
             transmission_limits: vec![2000.0, 1800.0, 2200.0],
         }
+    }
+
+    fn build_operational_snapshot(
+        &self,
+        scenario: &ValidationScenario,
+    ) -> OperationalSnapshot {
+        let ingest_time_ms_utc = scenario
+            .events
+            .last()
+            .map(|event| event.timestamp_ms)
+            .unwrap_or(0)
+            + 500;
+        let source_latency_ms = 500;
+
+        OperationalSnapshot::create(
+            scenario
+                .events
+                .iter()
+                .flat_map(|event| event.telemetry.clone())
+                .collect(),
+            ingest_time_ms_utc,
+            source_latency_ms,
+            scenario.topology_events.clone(),
+            TopologyGraph::default(),
+            None,
+            scenario.operator_command.clone(),
+            vec![
+                ("BRANCH_01".to_string(), 1200.0),
+                ("BRANCH_02".to_string(), 900.0),
+            ]
+            .into_iter()
+            .collect::<std::collections::BTreeMap<_, _>>(),
+            Default::default(),
+            Some(format!("replay-scenario-{}", scenario.scenario_id)),
+            &SemanticConfig::default(),
+        )
     }
 }
 

@@ -15,6 +15,7 @@
 // intellectual property. Unauthorized use is strictly prohibited.
 #![deny(unsafe_code)]
 
+use crate::canonical_core::hash::sha256_hex;
 use crate::ingest::rdf_parser::{CimModel, EquipmentKind, FixedDec9, Terminal};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -265,6 +266,73 @@ impl UnionFind {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TopologyVersion {
+    pub version_hash: String,
+    pub lineage_hash: Option<String>,
+    pub sequence: u64,
+}
+
+impl TopologyGraph {
+    pub fn canonical_identity(&self) -> String {
+        let mut payload = String::new();
+        payload.push_str("buses:");
+        for bus in &self.buses {
+            payload.push_str(&bus.bus_id);
+            payload.push(':');
+            payload.push_str(&bus.connectivity_nodes.join(","));
+            payload.push(';');
+        }
+        payload.push_str("|branches:");
+        for branch in &self.branches {
+            payload.push_str(&branch.equipment_id);
+            payload.push(':');
+            payload.push_str(&format!("{:?}", branch.kind));
+            payload.push(':');
+            payload.push_str(&branch.from_bus);
+            payload.push(':');
+            payload.push_str(&branch.to_bus);
+            payload.push(':');
+            payload.push_str(&formatted_fixed(branch.r.as_ref()));
+            payload.push(':');
+            payload.push_str(&formatted_fixed(branch.x.as_ref()));
+            payload.push(':');
+            payload.push_str(&formatted_fixed(branch.bch.as_ref()));
+            payload.push(';');
+        }
+        payload.push_str("|divergences:");
+        for divergence in &self.divergences {
+            payload.push_str(&divergence.equipment_id);
+            payload.push(':');
+            payload.push_str(&format!("{}", divergence.modeled_closed));
+            payload.push(':');
+            payload.push_str(&format!("{}", divergence.telemetered_closed));
+            payload.push(';');
+        }
+        sha256_hex(&payload)
+    }
+
+    pub fn seal_version(&self, previous: Option<&TopologyVersion>, sequence: u64) -> TopologyVersion {
+        TopologyVersion {
+            version_hash: self.canonical_identity(),
+            lineage_hash: previous.map(|prev| prev.version_hash.clone()),
+            sequence,
+        }
+    }
+}
+
+fn formatted_fixed(value: Option<&FixedDec9>) -> String {
+    value
+        .map(|v| {
+            let sign = if v.0 < 0 { "-" } else { "" };
+            let abs = v.0.abs();
+            let int_part = abs / FixedDec9::SCALE;
+            let frac_part = abs % FixedDec9::SCALE;
+            format!("{}{}.{}", sign, int_part, format!("{:09}", frac_part))
+        })
+        .unwrap_or_else(|| "null".to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -348,6 +416,34 @@ mod tests {
         );
         assert_eq!(graph.buses.len(), 3);
         assert_eq!(graph.divergences.len(), 1);
+    }
+
+    #[test]
+    fn topology_graph_canonical_identity_is_deterministic() {
+        let xml = r##"
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:cim="http://iec.ch/TC57/2013/CIM-schema-cim16#">
+  <cim:ConnectivityNode rdf:ID="CN_A"/>
+  <cim:ConnectivityNode rdf:ID="CN_B"/>
+  <cim:Breaker rdf:ID="BRK_1">
+    <cim:Switch.open>false</cim:Switch.open>
+  </cim:Breaker>
+  <cim:Terminal rdf:ID="T1">
+    <cim:Terminal.ConductingEquipment rdf:resource="#BRK_1"/>
+    <cim:Terminal.ConnectivityNode rdf:resource="#CN_A"/>
+  </cim:Terminal>
+  <cim:Terminal rdf:ID="T2">
+    <cim:Terminal.ConductingEquipment rdf:resource="#BRK_1"/>
+    <cim:Terminal.ConnectivityNode rdf:resource="#CN_B"/>
+  </cim:Terminal>
+</rdf:RDF>"##;
+        let model = parse_cim_rdf(xml.as_bytes()).expect("parse");
+        let telem = BTreeMap::new();
+        let graph = build_topology_graph(&model, &telem);
+        let identity1 = graph.canonical_identity();
+        let identity2 = graph.canonical_identity();
+        assert_eq!(identity1, identity2);
+        assert!(!identity1.is_empty());
     }
 }
 
