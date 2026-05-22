@@ -43,7 +43,9 @@ pub mod kernel_proofs;
 pub mod setpoint_guard;
 pub mod formal_admissibility;
 pub mod ercot_stress;
+pub mod ercot_ingest;
 pub mod simulation;
+pub mod operational_semantics;
 
 // 2026 Flagship Regulatory Compliance Framework
 pub mod audit_guardian;

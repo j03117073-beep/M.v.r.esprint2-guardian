@@ -17,11 +17,18 @@ use crate::reliability::relay_logic::{evaluate_relay_hard_fail_dc, BranchRelayPr
 use crate::telemetry::{decode_double_bit_breaker, validate_point, BreakerState, TelemetryPoint,
     TelemetryValidationConfig, TelemetryClass, TelemetryTimestamp, SnapshotAlignmentConfig,
     within_snapshot_skew_window};
-use crate::canonical_core::hash::sha256_hex;
 use crate::topology::graph_builder::{TopologyGraph, TopologyVersion};
+use sha2::{Digest, Sha256};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
+
+/// Deterministic SHA256 hashing for operational semantics
+fn sha256_semantics(payload: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(payload);
+    hex::encode(hasher.finalize())
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum OperationalSource {
@@ -76,8 +83,8 @@ impl SemanticSpecification {
         ]
         .join("|");
         let identity_payload = format!("{}|{}|{}", name, version, constraint_lineage);
-        let identity_hash = sha256_hex(&identity_payload);
-        let constraint_lineage_hash = sha256_hex(&constraint_lineage);
+        let identity_hash = sha256_semantics(&identity_payload);
+        let constraint_lineage_hash = sha256_semantics(&constraint_lineage);
 
         Self {
             name,
@@ -171,7 +178,7 @@ impl SemanticConfig {
             self.skew_window_ms,
             self.authority_threshold
         );
-        sha256_hex(&payload)
+        sha256_semantics(&payload)
     }
 }
 
@@ -212,7 +219,7 @@ impl OperationalSnapshot {
                 )
                 .unwrap();
             }
-            sha256_hex(&provenance)
+            sha256_semantics(&provenance)
         };
 
         let operator_command_context_hash = operator_command.as_ref().map(|command| {
@@ -223,12 +230,12 @@ impl OperationalSnapshot {
                 command.command,
                 command.authority_level,
             );
-            sha256_hex(&payload)
+            sha256_semantics(&payload)
         });
 
         let timing_identity = {
             let payload = format!("{}|{}", ingest_time_ms_utc, source_latency_ms);
-            sha256_hex(&payload)
+            sha256_semantics(&payload)
         };
 
         let snapshot_identity = {
@@ -250,7 +257,7 @@ impl OperationalSnapshot {
                 source_latency_ms,
             )
             .unwrap();
-            sha256_hex(&payload)
+            sha256_semantics(&payload)
         };
 
         OperationalSnapshot {

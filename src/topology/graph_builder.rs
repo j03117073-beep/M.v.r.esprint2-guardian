@@ -15,9 +15,16 @@
 // intellectual property. Unauthorized use is strictly prohibited.
 #![deny(unsafe_code)]
 
-use crate::canonical_core::hash::sha256_hex;
 use crate::ingest::rdf_parser::{CimModel, EquipmentKind, FixedDec9, Terminal};
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
+
+/// Deterministic SHA256 hashing for topology identity
+fn sha256_graph(payload: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(payload);
+    hex::encode(hasher.finalize())
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopologyDivergence {
@@ -309,7 +316,7 @@ impl TopologyGraph {
             payload.push_str(&format!("{}", divergence.telemetered_closed));
             payload.push(';');
         }
-        sha256_hex(&payload)
+        sha256_graph(&payload)
     }
 
     pub fn seal_version(&self, previous: Option<&TopologyVersion>, sequence: u64) -> TopologyVersion {

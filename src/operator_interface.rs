@@ -46,12 +46,14 @@ pub struct HardeningSnapshot {
 
 pub fn build_dashboard_snapshot(artifacts_dir: &str) -> Result<DashboardSnapshot, SystemHalt> {
     let path = Path::new(artifacts_dir);
-    
+
     if !path.exists() {
-        return Err(SystemHalt::new(
-            FailureAxis::ExternalInjectionDetected,
-            "Artifacts directory not found",
-        ));
+        std::fs::create_dir_all(path).map_err(|e| {
+            SystemHalt::with_formatted(
+                FailureAxis::ExternalInjectionDetected,
+                format!("Cannot create artifacts directory: {e}"),
+            )
+        })?;
     }
 
     Ok(DashboardSnapshot {
@@ -82,6 +84,64 @@ pub fn render_dashboard_html(snapshot: &DashboardSnapshot) -> String {
 </html>"#,
         snapshot.artifacts_dir,
         snapshot.compliance_score * 100.0
+    )
+}
+
+#[derive(Debug, Clone)]
+pub struct TraceVisualization {
+    pub summary: String,
+    pub source_failures: Vec<String>,
+    pub resolution: String,
+    pub details: Vec<String>,
+}
+
+pub fn render_trace_visualization_html(
+    snapshot: &DashboardSnapshot,
+    violations: &crate::constraint_system::ViolationVector,
+    semantics: &crate::operational_semantics::SemanticOutcome,
+) -> String {
+    let issues_html: String = semantics
+        .violations
+        .iter()
+        .map(|v| {
+            format!(
+                "<li><strong>{}</strong> from {:?}: {} &mdash; action: {:?}</li>",
+                v.constraint, v.source, v.reason, v.action
+            )
+        })
+        .collect();
+
+    format!(
+        r#"<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>M.V.R.ESPRINT1 Trace Visualization</title></head>
+<body style="font-family:Verdana,sans-serif;background:#f5f7fa;color:#0f172a;padding:20px">
+<h1>Runtime Trace Visualization</h1>
+<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px;">
+  <div>Artifacts: {}</div>
+  <div>Compliance Score: {:.2}%</div>
+  <div>Violation MW: {:.1}</div>
+  <div>Resolution: {:?}</div>
+  <div>Resolution Category: {:?}</div>
+</div>
+<h2>Trace Rationale</h2>
+<p>The runtime resolved uncertainty by preserving an audit trail and capturing the operational decision path.</p>
+<h3>Constraint / Source Failures</h3>
+<ul>{}</ul>
+<h3>Resolution</h3>
+<p>{:?}</p>
+<h3>Semantic Category</h3>
+<p>{:?}</p>
+</body>
+</html>"#,
+        snapshot.artifacts_dir,
+        snapshot.compliance_score * 100.0,
+        violations.total(),
+        semantics.resolution,
+        semantics.resolution_category,
+        issues_html,
+        semantics.resolution,
+        semantics.resolution_category,
     )
 }
 

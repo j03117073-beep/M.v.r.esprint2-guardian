@@ -34,6 +34,7 @@
 
 use m_v_r_esprint1::{
     demo_pipeline::{evaluate_trajectory, propose_trajectory_from_snapshot, MarketSnapshot},
+    ercot_ingest::{parse_system_wide_demand, CanonicalTelemetryStream},
     operational_semantics::{evaluate_infrastructure_semantics, OperatorCommandContext, OperationalSnapshot, SemanticConfig, TopologyEvent},
     regulatory_policy::{GovernanceMode, LegalCitation},
     sovereign_trace::SovereignTrace,
@@ -535,6 +536,99 @@ impl ReplayValidator {
     }
 }
 
+/// ERCOT-backed equivalence proof cycles
+#[derive(Debug, Clone)]
+pub struct ErcotEquivalenceProof {
+    pub iteration: u64,
+    pub snapshot_identity: String,
+    pub trace_hash: String,
+    pub semantic_config_identity: String,
+}
+
+/// ERCOT replay infrastructure for deterministic equivalence testing
+pub struct ErcotReplayValidator {
+    dataset_path: String,
+}
+
+impl ErcotReplayValidator {
+    pub fn new(dataset_path: &str) -> Self {
+        Self {
+            dataset_path: dataset_path.to_string(),
+        }
+    }
+
+    /// Load and normalize ERCOT dataset, then replay it N times for equivalence proof.
+    pub fn prove_equivalence(&self, iterations: usize) -> Result<Vec<ErcotEquivalenceProof>, String> {
+        let raw_points = parse_system_wide_demand(&self.dataset_path)?;
+        let canonical_stream =
+            CanonicalTelemetryStream::normalize(raw_points, &self.dataset_path);
+
+        eprintln!("✅ ERCOT dataset normalized");
+        eprintln!("   Points: {}", canonical_stream.points.len());
+        eprintln!("   Stream identity: {}", canonical_stream.stream_identity);
+        eprintln!("   Provenance hash: {}", canonical_stream.provenance_hash);
+        eprintln!();
+
+        let mut proofs = Vec::new();
+
+        for i in 0..iterations {
+            let snapshot = OperationalSnapshot::create(
+                canonical_stream.points.clone(),
+                1000,
+                500,
+                Vec::new(),
+                TopologyGraph::default(),
+                None,
+                None,
+                std::collections::BTreeMap::new(),
+                std::collections::BTreeMap::new(),
+                Some(canonical_stream.stream_identity.clone()),
+                &SemanticConfig::default(),
+            );
+
+            let semantic_outcome =
+                evaluate_infrastructure_semantics(&snapshot, &SemanticConfig::default());
+
+            let requested = snapshot
+                .telemetry
+                .get(0)
+                .map(|p| p.value)
+                .unwrap_or(0.0);
+            let actual = snapshot
+                .telemetry
+                .get(1)
+                .map(|p| p.value)
+                .unwrap_or(requested);
+            let trace = SovereignTrace::attest(
+                0,
+                requested,
+                actual,
+                GovernanceMode::Normal,
+                LegalCitation::default(),
+                &snapshot,
+                &semantic_outcome,
+                Some(canonical_stream.stream_identity.clone()),
+            ).map_err(|e| format!("trace attestation failed: {:?}", e))?;
+
+            proofs.push(ErcotEquivalenceProof {
+                iteration: i as u64,
+                snapshot_identity: snapshot.snapshot_identity.clone(),
+                trace_hash: trace.trace_hash.clone(),
+                semantic_config_identity: snapshot.semantic_spec_identity.clone(),
+            });
+
+            eprintln!(
+                "Iteration {}: snapshot_id={} trace_hash={}",
+                i,
+                &snapshot.snapshot_identity[..16.min(snapshot.snapshot_identity.len())],
+                &trace.trace_hash[..16.min(trace.trace_hash.len())]
+            );
+        }
+
+        Ok(proofs)
+    }
+}
+
 fn main() {
     eprintln!();
     eprintln!("╔════════════════════════════════════════════════════════════╗");
@@ -543,6 +637,85 @@ fn main() {
     eprintln!("╚════════════════════════════════════════════════════════════╝");
     eprintln!();
 
+    let args: Vec<String> = std::env::args().collect();
+    let mode = args.get(1).map(|s| s.as_str()).unwrap_or("canonical");
+
+    if mode == "ercot" {
+        // ERCOT-backed equivalence proof mode
+        eprintln!("🔷 ERCOT EQUIVALENCE PROOF MODE");
+        eprintln!("────────────────────────────────────────────────────────");
+        eprintln!();
+
+        let dataset_path = args
+            .get(2)
+            .map(|s| s.as_str())
+            .unwrap_or("Grid and Market Conditions/system-wide-demand.csv");
+
+        let validator = ErcotReplayValidator::new(dataset_path);
+        let proofs = match validator.prove_equivalence(5) {
+            Ok(p) => p,
+            Err(e) => {
+                eprintln!("❌ ERCOT equivalence proof failed: {}", e);
+                return;
+            }
+        };
+
+        eprintln!();
+        eprintln!("╔════════════════════════════════════════════════════════════╗");
+        eprintln!("║  EQUIVALENCE PROOF VERIFICATION                            ║");
+        eprintln!("╚════════════════════════════════════════════════════════════╝");
+        eprintln!();
+
+        // Verify all identities are identical across replay cycles
+        let first_snapshot_id = &proofs[0].snapshot_identity;
+        let first_trace_hash = &proofs[0].trace_hash;
+        let first_semantic_id = &proofs[0].semantic_config_identity;
+
+        let mut all_snapshots_same = true;
+        let mut all_traces_same = true;
+        let mut all_semantics_same = true;
+
+        for proof in &proofs {
+            if proof.snapshot_identity != *first_snapshot_id {
+                all_snapshots_same = false;
+            }
+            if proof.trace_hash != *first_trace_hash {
+                all_traces_same = false;
+            }
+            if proof.semantic_config_identity != *first_semantic_id {
+                all_semantics_same = false;
+            }
+        }
+
+        eprintln!(
+            "Snapshot Identity Invariant: {}",
+            if all_snapshots_same { "✅ PASS" } else { "❌ FAIL" }
+        );
+        eprintln!(
+            "Trace Hash Invariant: {}",
+            if all_traces_same { "✅ PASS" } else { "❌ FAIL" }
+        );
+        eprintln!(
+            "Semantic Config Invariant: {}",
+            if all_semantics_same { "✅ PASS" } else { "❌ FAIL" }
+        );
+        eprintln!();
+
+        if all_snapshots_same && all_traces_same && all_semantics_same {
+            eprintln!("✅ DETERMINISTIC EQUIVALENCE PROOF SUCCEEDED");
+            eprintln!("   Repeated replay of same dataset produces identical identities");
+            eprintln!("   across all 5 replay cycles.");
+        } else {
+            eprintln!("❌ DETERMINISTIC EQUIVALENCE PROOF FAILED");
+            eprintln!("   Replay cycles produced different identities - determinism compromised");
+        }
+
+        eprintln!();
+        eprintln!("════════════════════════════════════════════════════════════");
+        eprintln!("✅ ERCOT Equivalence Proof Complete");
+        eprintln!("════════════════════════════════════════════════════════════");
+    } else {
+        // Default: canonical synthetic scenarios
     let validator = ReplayValidator::new();
 
     // Execute all 8 canonical scenarios
@@ -628,4 +801,5 @@ fn main() {
     eprintln!("════════════════════════════════════════════════════════════");
     eprintln!("✅ Replay Validation Harness Complete");
     eprintln!("════════════════════════════════════════════════════════════");
+    }
 }
