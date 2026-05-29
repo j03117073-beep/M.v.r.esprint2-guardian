@@ -102,7 +102,7 @@ pub fn vector_delta_temporal_skip(node: &mut SubstrateNode) -> Result<(), System
     // Attempt to skip ticks
     node.stable_ticks = node.stable_ticks.saturating_add(10);
     
-    if node.stable_ticks > 255 {
+    if node.stable_ticks == 255 {
         return Err(SystemHalt::new(
             FailureAxis::TimingDriftFailure,
             "Temporal skip exploit detected",

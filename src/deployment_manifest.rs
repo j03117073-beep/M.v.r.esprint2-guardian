@@ -28,7 +28,9 @@
 
 
 /// Production manifest version - must match JSON
+#[allow(dead_code)]
 const MANIFEST_VERSION: &str = "1.0.0-PROD";
+#[allow(dead_code)]
 const MANIFEST_DATE: &str = "2026-03-02";
 
 /// Kernel safety invariants (hard-coded from manifest)

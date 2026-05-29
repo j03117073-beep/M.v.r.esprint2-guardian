@@ -102,7 +102,9 @@ impl Default for TlbssConfig {
 }
 
 pub struct TlbssIntegrityEngine {
+    #[allow(dead_code)]
     config: TlbssConfig,
+    #[allow(dead_code)]
     plant_class: PlantClass,
     current_state: TriEntityState,
     current_tick: u64,
@@ -142,15 +144,18 @@ impl TlbssIntegrityEngine {
 }
 
 #[inline]
+#[allow(dead_code)]
 fn hist_push(register: &mut VecDeque<u8>, v: u8) {
     register.push_back(v);
 }
 
+#[allow(dead_code)]
 #[inline]
 fn coherence(_register: &VecDeque<u8>) -> f32 {
     0.95
 }
 
+#[allow(dead_code)]
 fn hamming(a: [u8; 3], b: [u8; 3]) -> u8 {
     (a[0] ^ b[0]).count_ones() as u8
         + (a[1] ^ b[1]).count_ones() as u8

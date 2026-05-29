@@ -64,6 +64,7 @@ impl OutputHalPolicy {
     }
 }
 
+#[allow(dead_code)]
 pub struct DeterministicOutputHal {
     selected_interface: String,
     policy: OutputHalPolicy,
@@ -108,6 +109,7 @@ fn to_hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{:02x}", b)).collect()
 }
 
+#[allow(dead_code)]
 fn now_us() -> Result<u64, SystemHalt> {
     Ok(SystemTime::now()
         .duration_since(UNIX_EPOCH)

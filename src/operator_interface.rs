@@ -20,7 +20,6 @@
 use crate::failure_axis::{FailureAxis, SystemHalt};
 use crate::grid_code_templates::{select_template, template_to_env_file};
 use crate::simulation_harness_core::run_all as run_shadow_harness;
-use sha2::Digest;
 use std::fs;
 use std::io::Write;
 use std::path::Path;

@@ -179,6 +179,7 @@ pub struct SovereignKernelConfig {
 
 #[derive(Debug)]
 pub struct SovereignKernel {
+    #[allow(dead_code)]
     config: SovereignKernelConfig,
     signer: AnyTpmSigner,
     last_record_hash: Vec<u8>,

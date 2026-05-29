@@ -1,0 +1,9 @@
+# Ignore local Rust build artifacts and temporary files
+/target/
+**/target/
+Cargo.lock
+*.rs.bk
+*.swp
+*.tmp
+*.log
+.DS_Store

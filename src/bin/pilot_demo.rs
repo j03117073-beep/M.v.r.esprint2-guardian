@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     env::set_var("SIGNER_MODE", "simulation");
 
     // Create kernel
-    let signer = signer_from_env(.map_err(|e| format!("{:?}", e))?;
+    let signer = signer_from_env().map_err(|e| format!("{:?}", e))?;
     let config = SovereignKernelConfig { max_ticks: 100 };
     let mut kernel = SovereignKernel::new(signer, config);
 
@@ -36,11 +36,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for i in 0..3 {
         // Dummy IR module and input
-        let ir_module = IRModule { /* placeholder */ };
-        let input = IRInput { /* placeholder */ };
+        let ir_module = IRModule {
+            functions: Vec::new(),
+            constants: Vec::new(),
+        };
+        let input = IRInput {
+            args: std::collections::HashMap::new(),
+        };
 
         // Execute and capture record (in real impl, extract from kernel)
-        let _result = kernel.execute_foreign(&ir_module, input.map_err(|e| format!("{:?}", e))?;
+        let _result = kernel.execute_foreign(&ir_module, input)
+            .map_err(|e| format!("{:?}", e))?;
 
         // For demo, create a sample record (in practice, kernel would expose records)
         let record = AttestationRecord {
@@ -48,15 +54,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             pcr_digest: vec![0; 32],
             signature: vec![i as u8 + 1; 32],
             timestamp: 1710000000 + i,
-            prev_hash: if i == 0 { vec![0; 32] } else { vec![(i-1) as u8; 32] },
+            prev_hash: if i == 0 { vec![0; 32] } else { vec![(i - 1) as u8; 32] },
         };
         records.push(record);
     }
 
     // Save to file
-    let mut file = File::create("pilot_attestation_log.json".map_err(|e| format!("{:?}", e))?;
+    let mut file = File::create("pilot_attestation_log.json")
+        .map_err(|e| format!("{:?}", e))?;
     for record in &records {
-        writeln!(file, "{}", serde_json::to_string(record)?.map_err(|e| format!("{:?}", e))?;
+        writeln!(file, "{}", serde_json::to_string(record)
+            .map_err(|e| format!("{:?}", e))?)?;
     }
 
     println!("Generated pilot attestation log with {} records", records.len());
@@ -64,7 +72,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Run verifier
     let verifier_output = std::process::Command::new("cargo")
         .args(&["run", "--bin", "verifier", "pilot_attestation_log.json"])
-        .output(.map_err(|e| format!("{:?}", e))?;
+        .output()
+        .map_err(|e| format!("{:?}", e))?;
 
     if verifier_output.status.success() {
         println!("Verification successful!");

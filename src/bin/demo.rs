@@ -68,4 +68,3 @@ fn run_all_scenarios() {
         println!();
     }
 }
-<parameter name="filePath">/workspaces/M.V.R.ESPRINT1/src/bin/demo.rs

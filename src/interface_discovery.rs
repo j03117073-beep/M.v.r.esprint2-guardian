@@ -18,7 +18,6 @@
 #![deny(unsafe_code)]
 
 use crate::failure_axis::SystemHalt;
-use sha2::Digest;
 use std::collections::BTreeSet;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -32,6 +31,7 @@ pub enum InterfaceCategory {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(non_camel_case_types)]
 pub enum ProtocolKind {
     DNP3,
     Modbus,
@@ -125,18 +125,22 @@ fn scan_network_interfaces(_include_loopback: bool) -> Result<Vec<DiscoveredEndp
     Ok(endpoints)
 }
 
+#[allow(dead_code)]
 fn scan_serial_interfaces() -> Result<Vec<DiscoveredEndpoint>, SystemHalt> {
     Ok(vec![])
 }
 
+#[allow(dead_code)]
 fn parse_open_ports() -> Result<BTreeSet<u16>, SystemHalt> {
     Ok([20000, 502, 50000].iter().copied().collect())
 }
 
+#[allow(dead_code)]
 fn parse_proc_net_port(_line: &str) -> Option<u16> {
     None
 }
 
+#[allow(dead_code)]
 fn infer_network_protocol(open_ports: &BTreeSet<u16>) -> ProtocolKind {
     if open_ports.contains(&20000) {
         ProtocolKind::DNP3
@@ -170,6 +174,7 @@ pub fn load_scl_hints(_path: &str) -> Result<Vec<InterfaceHint>, SystemHalt> {
     Ok(vec![])
 }
 
+#[allow(dead_code)]
 fn extract_attr(_line: &str, _key: &str) -> Option<String> {
     None
 }

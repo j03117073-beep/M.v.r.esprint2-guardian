@@ -4,6 +4,7 @@
 // TLBSS Demo Pipeline
 // Unified demonstration of constraint evaluation → L7 mapping → adversarial validation
 
+use serde::{Deserialize, Serialize};
 use crate::{
     constraint_system::{ConstraintEvaluator, PowerState, Trajectory, ViolationVector},
     failure_axis::{FailureAxis, SystemHalt},
@@ -14,7 +15,7 @@ use crate::{
 use std::time::Instant;
 
 /// L7 Event Types - Map to regulatory emergency actions
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EventType {
     /// Resource insufficiency → RUC / operator commit
     RUCRequired,
@@ -29,7 +30,7 @@ pub enum EventType {
 }
 
 /// Market snapshot for replay scenarios
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MarketSnapshot {
     pub load_mw: f64,
     pub generation_mw: f64,
@@ -84,12 +85,12 @@ impl MarketSnapshot {
     }
 
     pub fn stress_case() -> Self {
-        Self::capacity_shortage()
+        Self::collapse_case()
     }
 }
 
 /// Complete demo result - shows full pipeline execution
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DemoResult {
     pub admissible: bool,
     pub violations: ViolationVector,
@@ -104,7 +105,7 @@ pub struct DemoResult {
 pub fn propose_trajectory_from_snapshot(snapshot: &MarketSnapshot) -> Trajectory {
     // Create a simple 3-interval trajectory based on market conditions
     let base_state = PowerState::new(
-        snapshot.generation_mw * 0.8, // Current power
+        snapshot.load_mw, // Current power demand
         snapshot.generation_mw * 0.75, // Previous power
         snapshot.reserve_margin_mw * 0.3, // Reg up
         snapshot.reserve_margin_mw * 0.2, // Reg down

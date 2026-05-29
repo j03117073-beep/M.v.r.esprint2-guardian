@@ -17,7 +17,9 @@
 
 /* Failure axis registry for deterministic halts */
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FailureAxis {
     InternalInvariantBreach,
     ExternalInjectionDetected,
