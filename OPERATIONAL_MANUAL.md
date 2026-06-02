@@ -48,6 +48,13 @@ cargo test --all
 
 The `sced_chain` binary is not available in this repository checkout.
 
+### Binary Status (Baseline)
+
+- `sced_chain`: Deprecated (Archived) — referenced in historical docs but not present in this baseline. Documentation updated to mark it archived.
+- `scenario_runner`: Deprecated (Archived) — documented but not implemented; treat as archived for this baseline.
+- `ise_runner`: Deprecated (Archived) — documented but not implemented; treat as archived for this baseline.
+
+
 ### SCED Benchmark
 
 The `sced_chain` binary is not available in this repository checkout.
