@@ -1,0 +1,7 @@
+--- old/phase_iii/enforcement_tx.log
++++ new/phase_iii/enforcement_tx.log
+@@ -1 +1 @@
+-Enforcement run: apply
+
++Enforcement run: dry-run
+

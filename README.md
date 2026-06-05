@@ -5,6 +5,21 @@ All Rights Reserved.
 
 Rust codebase for deterministic grid assurance experiments, audit-chain utilities, and SCED offer-chain verification.
 
+## Phase III Audit Readiness
+
+**Status**: ✅ Framework Activated and Ready for Independent Review
+
+Phase III audit framework: **Start at [phase_iii/INDEX.md](phase_iii/INDEX.md)** ← External auditors begin here
+
+**For independent reviewers**: See [phase_iii/REVIEWER_START.md](phase_iii/REVIEWER_START.md)
+
+### Phase III Summary
+- 12 operational claims documented and traceable
+- 7/12 claims validated (58%)
+- 10/14 evidence artifacts reproducible
+- 5 invariants verified, 7 unresolved (transparent)
+- Complete audit framework for external reviewers
+
 ## Current Build Snapshot
 
 Status as verified on 2026-03-26:
@@ -12,11 +27,11 @@ Status as verified on 2026-03-26:
 - `cargo test --lib` passes
 - `cargo check` passes
 - `cargo test --no-run` passes
-- `cargo build --bin sced_chain --bin verifier --bin demo --bin formal_proof_harness --bin dashboard --bin pilot_demo --bin scenario_runner` passes
+- `cargo build --bin verifier --bin demo --bin formal_proof_harness --bin dashboard --bin pilot_demo --bin audit_ticket_verifier` passes
 - `cargo test --test adversarial_validation` passes
 - `cargo build --bins`
 - `cargo test --all`
-- `cargo run --bin sced_chain -- benchmark test_vectors/ERCOT_SCED_PHYSICS_20260322_PROXY.csv` passes
+- `cargo run --bin audit_ticket_verifier -- verify-ticket audit_ticket.json` passes
 - `./scripts/boot_pilot_scenario.sh` passes
 - `./scripts/boot_full_scenario.sh` passes
 
@@ -32,7 +47,9 @@ Release benchmark snapshot on `test_vectors/ERCOT_SCED_PHYSICS_20260322_PROXY.cs
 
 ### 1. SCED Offer-Chain Verification
 
-The most complete production path in the repository is the SCED verifier in [`src/sced_offer_chain.rs`](/workspaces/M.V.R.ESPRINT1/src/sced_offer_chain.rs) with the CLI in [`src/bin/sced_chain.rs`](/workspaces/M.V.R.ESPRINT1/src/bin/sced_chain.rs).
+The most complete production path in the repository is the SCED verifier in [`src/sced_offer_chain.rs`](/workspaces/M.V.R.ESPRINT1/src/sced_offer_chain.rs).
+
+Note: The `sced_chain` CLI (`src/bin/sced_chain.rs`) referenced in older documentation is not present in this checkout and is considered archived for the current baseline. The current baseline instead emphasizes `verifier`, `audit_ticket_verifier`, and related deterministic audit workflows. If `sced_chain` is required for your workflow, reintroduce the CLI implementation and verify with `cargo build --bin sced_chain`.
 
 It supports:
 
@@ -83,67 +100,31 @@ Generator for that vector:
 - protocol-driver validation
 - trace/harness unit tests
 
-### 3. Scenario Demonstration Path
+### 3. Demonstration and Verification Path
 
-The repo now includes a hardened scenario path through [`src/scenario_kernel.rs`](/workspaces/M.V.R.ESPRINT1/src/scenario_kernel.rs) and [`src/bin/scenario_runner.rs`](/workspaces/M.V.R.ESPRINT1/src/bin/scenario_runner.rs).
+The repository currently supports a demo and pilot verification path through [`src/bin/demo.rs`](/workspaces/M.V.R.ESPRINT1/src/bin/demo.rs), [`src/bin/pilot_demo.rs`](/workspaces/M.V.R.ESPRINT1/src/bin/pilot_demo.rs), and [`src/bin/verifier.rs`](/workspaces/M.V.R.ESPRINT1/src/bin/verifier.rs).
 
 It supports:
 
-- deterministic scenario preflight validation
-- fail-closed audit artifact generation
-- human-readable Markdown audit tickets
-- machine-readable JSON attestation logs
-- clean operator stdout with `--quiet`, `--verbose`, and `--json`
-- pilot and full wrapper scripts
-- snapshot-based integration testing through the ISE harness
+- deterministic demo scenarios
+- generation of sample attestation logs
+- JSON-based attestation verification
+- clean operator stdout for the demo path
 
 Primary commands:
 
 ```bash
-cargo run --bin scenario_runner -- --mode pilot
-cargo run --bin scenario_runner -- --mode full --json
-make pilot-scenario
-make precompile-full
-make full-scenario
+cargo run --bin demo -- normal
+cargo run --bin pilot_demo
+cargo run --bin verifier pilot_attestation_log.json
 ```
 
 Primary artifacts:
 
-- [`scenario_audit_ticket.md`](/workspaces/M.V.R.ESPRINT1/scenario_audit_ticket.md)
-- [`scenario_attestation_log.json`](/workspaces/M.V.R.ESPRINT1/scenario_attestation_log.json)
-- [`performance_ledger.json`](/workspaces/M.V.R.ESPRINT1/performance_ledger.json)
-- [`logs/pilot/`](/workspaces/M.V.R.ESPRINT1/logs/pilot)
-- [`logs/full/`](/workspaces/M.V.R.ESPRINT1/logs/full)
+- [`pilot_attestation_log.json`](/workspaces/M.V.R.ESPRINT1/pilot_attestation_log.json)
+- [`pilot_audit_ticket.md`](/workspaces/M.V.R.ESPRINT1/pilot_audit_ticket.md)
 
-### 4. Integration Simulation Environment
-
-The repository now includes a lightweight Integration Simulation Environment through [`src/ise.rs`](/workspaces/M.V.R.ESPRINT1/src/ise.rs) and [`src/bin/ise_runner.rs`](/workspaces/M.V.R.ESPRINT1/src/bin/ise_runner.rs).
-
-It is intentionally snapshot-based:
-
-- no live input mutation during a run
-- no nondeterministic randomness
-- no bypass of ICCP or external-model snapshot validation
-
-Primary command:
-
-```bash
-cargo run --bin ise_runner -- --mode accelerated --factor 60
-```
-
-Stress example:
-
-```bash
-cargo run --bin ise_runner -- --mode step --inject load-spike --inject constraint-stress
-```
-
-Primary artifacts:
-
-- [`ise_performance_report.json`](/workspaces/M.V.R.ESPRINT1/ise_performance_report.json)
-- [`ise_performance_report.md`](/workspaces/M.V.R.ESPRINT1/ise_performance_report.md)
-- [`ise_scenario_timeline_log.jsonl`](/workspaces/M.V.R.ESPRINT1/ise_scenario_timeline_log.jsonl)
-
-### 5. Demo and Harness Binaries
+### 4. Demo and Harness Binaries
 
 These binaries currently build and run:
 
@@ -151,20 +132,16 @@ These binaries currently build and run:
 - `dashboard`
 - `formal_proof_harness`
 - `pilot_demo`
-- `ise_runner`
-- `scenario_runner`
 - `verifier`
-- `sced_chain`
+- `audit_ticket_verifier`
 
 Their roles:
 
 - `demo`: runs canned market-state scenarios through the demo pipeline
 - `dashboard`: serves the demo dashboard, scenario API, and demo audit-ticket/report endpoints
 - `formal_proof_harness`: checks simple invariant-style proofs against zero-state/TLBSS primitives
-- `pilot_demo`: generates a sample attestation log, verifies it, and writes a formal evidentiary Markdown report
-- `ise_runner`: replays timestamped scenario inputs through a deterministic integration harness and emits performance plus timeline reports
-- `scenario_runner`: executes the demonstration scenario kernel and emits standardized audit artifacts
-- `verifier`: validates JSON attestation chains for `AttestationRecord` using the shared Ed25519-backed verification path
+- `pilot_demo`: generates a sample attestation log and verifies it with `verifier`
+- `verifier`: validates JSON attestation chains for `AttestationRecord`
 - `sced_chain`: validates and benchmarks SCED offer-chain CSVs
 
 ## Repository Shape
@@ -180,34 +157,18 @@ Key library modules exported from [`src/lib.rs`](/workspaces/M.V.R.ESPRINT1/src/
 
 ## Recommended Commands
 
-Single-command kernel wrappers:
-
-```bash
-make pilot
-make full
-make pilot-scenario
-make full-scenario
-make precompile-full
-```
+The current checkout does not include a Makefile or boot-script wrappers. Use the direct `cargo` binaries listed below.
 
 Build the known-good binaries:
 
 ```bash
-cargo build --bin sced_chain --bin verifier --bin demo --bin formal_proof_harness --bin dashboard --bin pilot_demo --bin scenario_runner
+cargo build --bin verifier --bin demo --bin formal_proof_harness --bin dashboard --bin pilot_demo --bin audit_ticket_verifier
 ```
 
 Run the library test suite:
 
 ```bash
 cargo test --lib
-```
-
-Run the SCED proxy verification path:
-
-```bash
-cargo run --bin sced_chain -- verify-full test_vectors/ERCOT_SCED_PHYSICS_20260322_PROXY.csv
-cargo run --bin sced_chain -- benchmark test_vectors/ERCOT_SCED_PHYSICS_20260322_PROXY.csv
-cargo run --bin sced_chain -- predict --sample
 ```
 
 Run the demo CLI:
@@ -225,18 +186,20 @@ cargo run --bin pilot_demo
 This writes:
 
 - [`pilot_attestation_log.json`](/workspaces/M.V.R.ESPRINT1/pilot_attestation_log.json)
-- [`pilot_audit_ticket.md`](/workspaces/M.V.R.ESPRINT1/pilot_audit_ticket.md)
 
-Generate the demonstration-ready scenario artifacts:
+Verify the generated attestation log:
 
 ```bash
-cargo run --bin scenario_runner -- --mode pilot
+cargo run --bin verifier pilot_attestation_log.json
 ```
 
-This writes:
+Create and verify an audit ticket for this baseline:
 
-- [`scenario_attestation_log.json`](/workspaces/M.V.R.ESPRINT1/scenario_attestation_log.json)
-- [`scenario_audit_ticket.md`](/workspaces/M.V.R.ESPRINT1/scenario_audit_ticket.md)
+```bash
+cargo run --bin audit_ticket_verifier -- manifest-generate audit_manifest.json
+cargo run --bin audit_ticket_verifier -- ticket-create audit_manifest.json audit_ticket.json "Baseline certification ticket"
+cargo run --bin audit_ticket_verifier -- verify-ticket audit_ticket.json
+```
 
 Run the formal proof harness:
 

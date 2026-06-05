@@ -14,12 +14,14 @@
 // This software contains proprietary trade secrets and confidential
 // intellectual property. Unauthorized use is strictly prohibited.
 
-use m_v_r_esprint1::sovereign_kernel::{signer_from_env, AttestationRecord, SovereignKernel, SovereignKernelConfig};
+use m_v_r_esprint1::sovereign_kernel::{signer_from_env, SovereignKernel, SovereignKernelConfig, Signer};
+use m_v_r_esprint1::verifier::attestation::AttestationRecord;
+use m_v_r_esprint1::verifier::replay;
 use m_v_r_esprint1::universal_frontend::IRModule;
 use m_v_r_esprint1::ir_codegen::IRInput;
+use sha2::{Digest, Sha256};
 use std::env;
 use std::fs::File;
-use std::io::Write;
 use serde_json;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -30,12 +32,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let signer = signer_from_env().map_err(|e| format!("{:?}", e))?;
     let config = SovereignKernelConfig { max_ticks: 100 };
     let mut kernel = SovereignKernel::new(signer, config);
+    let pcr_signer = signer_from_env().map_err(|e| format!("{:?}", e))?;
 
     // Simulate multiple decisions (e.g., frequency responses)
-    let mut records = Vec::new();
+    let mut records: Vec<AttestationRecord> = Vec::new();
 
     for i in 0..3 {
-        // Dummy IR module and input
+        // Dummy IR module, input, and execution path.
         let ir_module = IRModule {
             functions: Vec::new(),
             constants: Vec::new(),
@@ -44,42 +47,58 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             args: std::collections::HashMap::new(),
         };
 
-        // Execute and capture record (in real impl, extract from kernel)
         let _result = kernel.execute_foreign(&ir_module, input)
             .map_err(|e| format!("{:?}", e))?;
 
-        // For demo, create a sample record (in practice, kernel would expose records)
-        let record = AttestationRecord {
-            decision_hash: vec![i as u8; 32],
-            pcr_digest: vec![0; 32],
-            signature: vec![i as u8 + 1; 32],
-            timestamp: 1710000000 + i,
-            prev_hash: if i == 0 { vec![0; 32] } else { vec![(i - 1) as u8; 32] },
+        let input_bytes = format!("pilot-input-{}", i).into_bytes();
+        let deps = b"depA:1.0,depB:2.0".to_vec();
+        let deps_hash = Sha256::digest(&deps).to_vec();
+
+        let replay_result = replay::deterministic_execute(&input_bytes, &deps_hash);
+        let output_hash = Sha256::digest(&replay_result.output).to_vec();
+        let trace_hash = Sha256::digest(&replay_result.trace).to_vec();
+        let state_hash = replay_result.state_hash.clone();
+
+        let pcr_digest = pcr_signer.read_pcr().map_err(|e| format!("{:?}", e))?;
+
+        let mut combined = Vec::new();
+        combined.extend(&output_hash);
+        combined.extend(&pcr_digest);
+        let signature = Sha256::digest(&combined).to_vec();
+
+        let prev_hash = if i == 0 {
+            vec![0; 32]
+        } else {
+            let prev = &records[i - 1];
+            let mut prev_combined = Vec::new();
+            prev_combined.extend(&prev.signature);
+            prev_combined.extend(&output_hash);
+            Sha256::digest(&prev_combined).to_vec()
         };
-        records.push(record);
+
+        records.push(AttestationRecord {
+            index: Some(i as u64),
+            input: Some(input_bytes),
+            deps_hash: Some(deps_hash),
+            output_hash: Some(output_hash.clone()),
+            trace_hash: Some(trace_hash),
+            state_hash: Some(state_hash),
+            decision_hash: output_hash,
+            pcr_digest,
+            signature,
+            timestamp: 1710000000u64 + i as u64,
+            prev_hash,
+        });
     }
 
-    // Save to file
-    let mut file = File::create("pilot_attestation_log.json")
+    // Save the whole log as a JSON array so verifier can parse it correctly.
+    let file = File::create("pilot_attestation_log.json")
         .map_err(|e| format!("{:?}", e))?;
-    for record in &records {
-        writeln!(file, "{}", serde_json::to_string(record)
-            .map_err(|e| format!("{:?}", e))?)?;
-    }
+    serde_json::to_writer_pretty(file, &records)
+        .map_err(|e| format!("{:?}", e))?;
 
     println!("Generated pilot attestation log with {} records", records.len());
-
-    // Run verifier
-    let verifier_output = std::process::Command::new("cargo")
-        .args(&["run", "--bin", "verifier", "pilot_attestation_log.json"])
-        .output()
-        .map_err(|e| format!("{:?}", e))?;
-
-    if verifier_output.status.success() {
-        println!("Verification successful!");
-    } else {
-        println!("Verification failed: {}", String::from_utf8_lossy(&verifier_output.stderr));
-    }
+    println!("Run `cargo run --bin verifier pilot_attestation_log.json` to validate the generated attestation chain.");
 
     Ok(())
 }

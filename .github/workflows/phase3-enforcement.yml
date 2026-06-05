@@ -1,0 +1,39 @@
+name: Phase III Enforcement
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  enforcement:
+    name: Phase III Enforcement Dry-Run
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Phase III enforcement dry-run
+        run: python3 tools/phase3_enforce/enforce.py --dry-run
+
+      - name: Validate enforcement report generation
+        run: |
+          if [[ ! -f phase_iii/ENFORCEMENT_REPORT.md ]]; then
+            echo 'ENFORCEMENT_REPORT.md missing' >&2
+            exit 1
+          fi
+          if [[ ! -f phase_iii/enforcement_patch.diff ]]; then
+            echo 'enforcement_patch.diff missing' >&2
+            exit 1
+          fi
+
+      - name: Fail on invalid structure claims
+        run: |
+          if grep -q 'INVALID_STRUCTURE' phase_iii/ENFORCEMENT_REPORT.md; then
+            echo 'Regression: new INVALID_STRUCTURE claims detected' >&2
+            exit 1
+          fi

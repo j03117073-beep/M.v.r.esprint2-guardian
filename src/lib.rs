@@ -37,6 +37,7 @@ pub mod simulation;
 
 // 2026 Flagship Regulatory Compliance Framework
 pub mod audit_guardian;
+pub mod audit_ticket;
 pub mod deployment_manifest;
 pub mod grid_code_templates;
 pub mod hal_output;
@@ -58,3 +59,4 @@ pub mod ir_codegen;
 pub mod sovereign_bus;
 pub mod ir_backends;
 pub mod crypto_pipeline;
+pub mod verifier;

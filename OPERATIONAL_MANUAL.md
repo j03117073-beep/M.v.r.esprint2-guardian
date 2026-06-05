@@ -6,15 +6,13 @@ This manual reflects the commands and workflows that are actually usable in the 
 
 Use this repository today for:
 
-- SCED offer-chain verification and benchmarking
-- SCED decomposition and Phase III payload validation
+- SCED offer-chain verification and benchmarking (via available Rust binaries)
+- SCED decomposition and Phase III payload validation where supported by present source
 - deterministic library-level testing
 - demo scenario playback
 - dashboard serving
-- scenario demonstration execution
-- integration simulation and replay testing
 - pilot attestation log generation
-- formal evidentiary Markdown report generation
+- formal evidentiary invariant harness execution
 - Ed25519-backed attestation-chain verification for correctly formatted JSON inputs
 
 ## Environment Requirements
@@ -28,18 +26,13 @@ Use this repository today for:
 
 ### Kernel Boot Surface
 
-```bash
-make pilot
-make full
-make pilot-scenario
-make full-scenario
-make precompile-full
-```
+This checkout does not include a `Makefile` or the documented boot wrappers.
+Run the supported cargo binaries directly instead.
 
 ### Build
 
 ```bash
-cargo build --bin sced_chain --bin verifier --bin demo --bin formal_proof_harness --bin dashboard --bin pilot_demo --bin scenario_runner
+cargo build --bin verifier --bin demo --bin formal_proof_harness --bin dashboard --bin pilot_demo --bin audit_ticket_verifier
 cargo build --bins
 ```
 
@@ -53,31 +46,22 @@ cargo test --all
 
 ### SCED Verification
 
-```bash
-cargo run --bin sced_chain -- verify-full test_vectors/ERCOT_SCED_PHYSICS_20260322_PROXY.csv
-cargo run --bin sced_chain -- decompose <zip_or_folder>
-```
+The `sced_chain` binary is not available in this repository checkout.
+
+### Binary Status (Baseline)
+
+- `sced_chain`: Deprecated (Archived) — referenced in historical docs but not present in this baseline. Documentation updated to mark it archived.
+- `scenario_runner`: Deprecated (Archived) — documented but not implemented; treat as archived for this baseline.
+- `ise_runner`: Deprecated (Archived) — documented but not implemented; treat as archived for this baseline.
+
 
 ### SCED Benchmark
 
-```bash
-cargo run --bin sced_chain -- benchmark test_vectors/ERCOT_SCED_PHYSICS_20260322_PROXY.csv
-```
-
-Observed release benchmark snapshot on 2026-03-26:
-
-- `records_total=1152`
-- `intervals=288`
-- `runtime_ms=75`
-- `throughput_rps=15303`
-- `throughput_intervals_per_sec=3826`
+The `sced_chain` binary is not available in this repository checkout.
 
 ### Phase III Prediction Schema
 
-```bash
-cargo run --bin sced_chain -- predict --sample
-cargo run --bin sced_chain -- predict --validate <prediction.json>
-```
+The `sced_chain` binary is not available in this repository checkout.
 
 ### Demo
 
@@ -100,39 +84,14 @@ cargo run --bin pilot_demo
 Outputs:
 
 - [`pilot_attestation_log.json`](/workspaces/M.V.R.ESPRINT1/pilot_attestation_log.json)
-- [`pilot_audit_ticket.md`](/workspaces/M.V.R.ESPRINT1/pilot_audit_ticket.md)
 
 ### Scenario Runner
 
-```bash
-cargo run --bin scenario_runner -- --mode pilot
-cargo run --bin scenario_runner -- --mode pilot --quiet
-cargo run --bin scenario_runner -- --mode full --json
-```
-
-Outputs:
-
-- [`scenario_attestation_log.json`](/workspaces/M.V.R.ESPRINT1/scenario_attestation_log.json)
-- [`scenario_audit_ticket.md`](/workspaces/M.V.R.ESPRINT1/scenario_audit_ticket.md)
-
-Flags:
-
-- `--quiet`: minimal stdout
-- `--verbose`: includes stage telemetry
-- `--json`: emits machine-readable summary to stdout
+The `scenario_runner` binary is not available in this repository checkout. Use `pilot_demo` and `verifier` for the current demo/attestation workflow.
 
 ### ISE Runner
 
-```bash
-cargo run --bin ise_runner -- --mode accelerated --factor 60
-cargo run --bin ise_runner -- --mode realtime
-cargo run --bin ise_runner -- --mode step --inject load-spike --inject constraint-stress
-```
-
-Outputs:
-
-- [`ise_performance_report.json`](/workspaces/M.V.R.ESPRINT1/ise_performance_report.json)
-- [`ise_performance_report.md`](/workspaces/M.V.R.ESPRINT1/ise_performance_report.md)
+The `ise_runner` binary is not available in this repository checkout.
 - [`ise_scenario_timeline_log.jsonl`](/workspaces/M.V.R.ESPRINT1/ise_scenario_timeline_log.jsonl)
 
 Determinism guardrails:
@@ -226,6 +185,20 @@ Example:
 ```bash
 cargo run --bin verifier -- <attestation_log.json>
 ```
+
+## Audit Ticket Verifier
+
+`audit_ticket_verifier` is the deterministic repository integrity verifier for this baseline.
+
+Examples:
+
+```bash
+cargo run --bin audit_ticket_verifier -- manifest-generate audit_manifest.json
+cargo run --bin audit_ticket_verifier -- ticket-create audit_manifest.json audit_ticket.json "Baseline certification ticket"
+cargo run --bin audit_ticket_verifier -- verify-ticket audit_ticket.json
+```
+
+This binary generates a repository manifest, creates a canonical audit ticket, and validates the ticket and artifact hashes against the local checkout.
 
 It will fail if you pass:
 

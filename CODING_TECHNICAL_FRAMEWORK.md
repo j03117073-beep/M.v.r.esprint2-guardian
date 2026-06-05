@@ -24,9 +24,8 @@ cargo test ise --lib
 cargo build --bins
 ./scripts/boot_pilot_scenario.sh
 ./scripts/boot_full_scenario.sh
-cargo run --quiet --bin scenario_runner -- --mode pilot --json
-cargo run --quiet --bin verifier -- scenario_attestation_log.json
-cargo run --quiet --bin ise_runner -- --mode accelerated --factor 60
+cargo run --quiet --bin pilot_demo
+cargo run --quiet --bin verifier pilot_attestation_log.json
 ```
 
 ### Priority 2: Protect Deterministic Boundaries
@@ -34,13 +33,12 @@ cargo run --quiet --bin ise_runner -- --mode accelerated --factor 60
 High-signal files:
 
 - [`src/sced_offer_chain.rs`](/workspaces/M.V.R.ESPRINT1/src/sced_offer_chain.rs)
-- [`src/scenario_kernel.rs`](/workspaces/M.V.R.ESPRINT1/src/scenario_kernel.rs)
 - [`src/iccp_adapter.rs`](/workspaces/M.V.R.ESPRINT1/src/iccp_adapter.rs)
 - [`src/external_model_inputs.rs`](/workspaces/M.V.R.ESPRINT1/src/external_model_inputs.rs)
-- [`src/ise.rs`](/workspaces/M.V.R.ESPRINT1/src/ise.rs)
 - [`src/failure_signal.rs`](/workspaces/M.V.R.ESPRINT1/src/failure_signal.rs)
-- [`src/bin/scenario_runner.rs`](/workspaces/M.V.R.ESPRINT1/src/bin/scenario_runner.rs)
-- [`src/bin/ise_runner.rs`](/workspaces/M.V.R.ESPRINT1/src/bin/ise_runner.rs)
+- [`src/bin/demo.rs`](/workspaces/M.V.R.ESPRINT1/src/bin/demo.rs)
+- [`src/bin/pilot_demo.rs`](/workspaces/M.V.R.ESPRINT1/src/bin/pilot_demo.rs)
+- [`src/bin/verifier.rs`](/workspaces/M.V.R.ESPRINT1/src/bin/verifier.rs)
 
 ### Priority 3: Keep Evidence Contracts Stable
 
@@ -86,22 +84,21 @@ For scenario and validation changes:
 cargo check
 cargo test scenario_kernel --lib
 cargo test external_model_inputs --lib
-cargo run --quiet --bin scenario_runner -- --mode pilot --json
-cargo run --quiet --bin verifier -- scenario_attestation_log.json
+cargo run --quiet --bin pilot_demo
+cargo run --quiet --bin verifier pilot_attestation_log.json
 ```
 
 For ISE changes:
 
 ```bash
 cargo test ise --lib
-cargo run --quiet --bin ise_runner -- --mode accelerated --factor 60
 ```
 
 For failure classification changes:
 
 ```bash
-cargo run --quiet --bin scenario_runner -- --mode pilot --manifest /tmp/does-not-exist --json
-cargo run --quiet --bin ise_runner -- --mode step --inject load-spike --inject constraint-stress --json-output ise_stress_report.json --markdown-output ise_stress_report.md --timeline-output ise_stress_timeline.jsonl
+cargo run --quiet --bin pilot_demo
+cargo run --quiet --bin verifier pilot_attestation_log.json
 ```
 
 ## Determinism Guardrails
