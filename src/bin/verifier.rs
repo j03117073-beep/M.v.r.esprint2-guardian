@@ -14,70 +14,16 @@
 // This software contains proprietary trade secrets and confidential
 // intellectual property. Unauthorized use is strictly prohibited.
 
-use m_v_r_esprint1::sovereign_kernel::AttestationRecord;
-use sha2::{Digest, Sha256};
-use std::fs;
+use m_v_r_esprint1::verifier::run_from_file;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let path = std::env::args().nth(1).expect("provide log file path");
 
-    let data = fs::read_to_string(&path)?;
-
-    let records: Vec<AttestationRecord> = serde_json::from_str(&data)?;
-
-    verify_chain(&records)?;
-
-    println!("✔ Chain verified: {} records valid", records.len());
-
-    Ok(())
-}
-
-fn verify_chain(records: &[AttestationRecord]) -> Result<(), String> {
-    for i in 0..records.len() {
-        let record = &records[i];
-
-        // 1. Verify signature
-        verify_signature(record)?;
-
-        // 2. Verify hash linkage
-        if i > 0 {
-            let prev = &records[i - 1];
-
-            let mut input = Vec::new();
-            input.extend(&prev.signature);
-            input.extend(&record.decision_hash);
-
-            let expected = Sha256::digest(&input);
-
-            if expected.to_vec() != record.prev_hash {
-                return Err(format!("Chain broken at index {}", i));
-            }
-        } else {
-            // First record should have prev_hash as zeros
-            if record.prev_hash != vec![0; 32] {
-                return Err("First record prev_hash not zero".into());
-            }
+    match run_from_file(&path) {
+        Ok(msg) => {
+            println!("{}", msg);
+            Ok(())
         }
-
-        // 3. Monotonic timestamp check
-        if i > 0 && record.timestamp < records[i - 1].timestamp {
-            return Err("Timestamp ordering violated".into());
-        }
+        Err(e) => Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, e))),
     }
-
-    Ok(())
-}
-
-fn verify_signature(record: &AttestationRecord) -> Result<(), String> {
-    let mut combined = Vec::new();
-    combined.extend(&record.decision_hash);
-    combined.extend(&record.pcr_digest);
-
-    let expected = Sha256::digest(&combined);
-
-    if expected.to_vec() != record.signature {
-        return Err("Invalid signature".into());
-    }
-
-    Ok(())
 }

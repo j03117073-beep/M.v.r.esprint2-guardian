@@ -32,7 +32,7 @@ Run the supported cargo binaries directly instead.
 ### Build
 
 ```bash
-cargo build --bin verifier --bin demo --bin formal_proof_harness --bin dashboard --bin pilot_demo
+cargo build --bin verifier --bin demo --bin formal_proof_harness --bin dashboard --bin pilot_demo --bin audit_ticket_verifier
 cargo build --bins
 ```
 
@@ -185,6 +185,20 @@ Example:
 ```bash
 cargo run --bin verifier -- <attestation_log.json>
 ```
+
+## Audit Ticket Verifier
+
+`audit_ticket_verifier` is the deterministic repository integrity verifier for this baseline.
+
+Examples:
+
+```bash
+cargo run --bin audit_ticket_verifier -- manifest-generate audit_manifest.json
+cargo run --bin audit_ticket_verifier -- ticket-create audit_manifest.json audit_ticket.json "Baseline certification ticket"
+cargo run --bin audit_ticket_verifier -- verify-ticket audit_ticket.json
+```
+
+This binary generates a repository manifest, creates a canonical audit ticket, and validates the ticket and artifact hashes against the local checkout.
 
 It will fail if you pass:
 

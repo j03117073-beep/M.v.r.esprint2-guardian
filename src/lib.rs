@@ -59,3 +59,4 @@ pub mod ir_codegen;
 pub mod sovereign_bus;
 pub mod ir_backends;
 pub mod crypto_pipeline;
+pub mod verifier;

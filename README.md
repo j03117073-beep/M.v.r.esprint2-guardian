@@ -27,11 +27,11 @@ Status as verified on 2026-03-26:
 - `cargo test --lib` passes
 - `cargo check` passes
 - `cargo test --no-run` passes
-- `cargo build --bin sced_chain --bin verifier --bin demo --bin formal_proof_harness --bin dashboard --bin pilot_demo` passes
+- `cargo build --bin verifier --bin demo --bin formal_proof_harness --bin dashboard --bin pilot_demo --bin audit_ticket_verifier` passes
 - `cargo test --test adversarial_validation` passes
 - `cargo build --bins`
 - `cargo test --all`
-- `cargo run --bin sced_chain -- benchmark test_vectors/ERCOT_SCED_PHYSICS_20260322_PROXY.csv` passes
+- `cargo run --bin audit_ticket_verifier -- verify-ticket audit_ticket.json` passes
 - `./scripts/boot_pilot_scenario.sh` passes
 - `./scripts/boot_full_scenario.sh` passes
 
@@ -49,7 +49,7 @@ Release benchmark snapshot on `test_vectors/ERCOT_SCED_PHYSICS_20260322_PROXY.cs
 
 The most complete production path in the repository is the SCED verifier in [`src/sced_offer_chain.rs`](/workspaces/M.V.R.ESPRINT1/src/sced_offer_chain.rs).
 
-Note: The `sced_chain` CLI (`src/bin/sced_chain.rs`) referenced in older documentation is not present in this checkout and is considered archived for the current baseline. If `sced_chain` is required for your workflow, reintroduce the CLI implementation and verify with `cargo build --bin sced_chain`.
+Note: The `sced_chain` CLI (`src/bin/sced_chain.rs`) referenced in older documentation is not present in this checkout and is considered archived for the current baseline. The current baseline instead emphasizes `verifier`, `audit_ticket_verifier`, and related deterministic audit workflows. If `sced_chain` is required for your workflow, reintroduce the CLI implementation and verify with `cargo build --bin sced_chain`.
 
 It supports:
 
@@ -133,7 +133,7 @@ These binaries currently build and run:
 - `formal_proof_harness`
 - `pilot_demo`
 - `verifier`
-- `sced_chain`
+- `audit_ticket_verifier`
 
 Their roles:
 
@@ -162,7 +162,7 @@ The current checkout does not include a Makefile or boot-script wrappers. Use th
 Build the known-good binaries:
 
 ```bash
-cargo build --bin verifier --bin demo --bin formal_proof_harness --bin dashboard --bin pilot_demo
+cargo build --bin verifier --bin demo --bin formal_proof_harness --bin dashboard --bin pilot_demo --bin audit_ticket_verifier
 ```
 
 Run the library test suite:
@@ -191,6 +191,14 @@ Verify the generated attestation log:
 
 ```bash
 cargo run --bin verifier pilot_attestation_log.json
+```
+
+Create and verify an audit ticket for this baseline:
+
+```bash
+cargo run --bin audit_ticket_verifier -- manifest-generate audit_manifest.json
+cargo run --bin audit_ticket_verifier -- ticket-create audit_manifest.json audit_ticket.json "Baseline certification ticket"
+cargo run --bin audit_ticket_verifier -- verify-ticket audit_ticket.json
 ```
 
 Run the formal proof harness:
