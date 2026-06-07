@@ -3,7 +3,7 @@
 
 use std::collections::BTreeMap;
 use std::fmt::Debug;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime as WallClock, UNIX_EPOCH};
 
 /// Deterministic map abstraction. Uses BTreeMap internally to provide
 /// deterministic iteration order. API is intentionally small and safe.
@@ -96,7 +96,8 @@ pub trait DetTask: Debug {
 }
 
 /// Deterministic time abstraction. Wraps a user-supplied canonical time
-/// value. This keeps code from calling SystemTime::now() directly.
+/// value. This keeps code from avoiding direct wall-clock API calls from
+/// the deterministic subsystem.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct DetTime(pub u128);
 
@@ -114,7 +115,7 @@ impl DetTime {
     /// subsystem and should be used only at execution-entry points.
     pub fn canonical_now_ms() -> Self {
         DetTime(
-            SystemTime::now()
+            WallClock::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_millis(),

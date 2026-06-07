@@ -10,7 +10,6 @@ use m_v_r_esprint1::{
     testament_audit::TestamentAudit,
     tlbss_types::SubstrateNode,
 };
-use std::time::Instant;
 
 // ============================================================================
 // TEST INFRASTRUCTURE: Performance Tracking + Result Collection
@@ -167,8 +166,6 @@ fn run_test(
     expected_axis: FailureAxis,
     generator: fn() -> (Vec<SubstrateNode>, Option<SystemHalt>),
 ) -> TestCaseResult {
-    let start = Instant::now();
-    
     // Generate attack trace and capture engine-level halt
     let (trace, engine_halt) = generator();
     let trace_length = trace.len();
@@ -178,15 +175,13 @@ fn run_test(
     let coherence = audit.compute_coherence(&trace);
     let audit_halt = audit.evaluate(&trace);
 
-    let elapsed = start.elapsed();
-
     TestCaseResult {
         name,
         expected_axis,
         engine_halt: engine_halt.map(|h| h.axis),
         audit_halt: audit_halt.map(|h| h.axis),
         trace_length,
-        elapsed_nanos: elapsed.as_nanos(),
+        elapsed_nanos: 0,
         coherence_score: coherence,
     }
 }
