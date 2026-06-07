@@ -29,6 +29,8 @@
 //! was physically incapable of violating regulatory mandates.
 pub mod streamer;
 
+use crate::canonical_time::CanonicalTime;
+use crate::deterministic_core::DetTime;
 use crate::failure_axis::{FailureAxis, SystemHalt};
 use crate::regulatory_policy::{GovernanceMode, LegalCitation};
 use crate::sovereign_bus::{SovereignMessage, ActorId, ActorRole, OriginLanguage, TraceId};
@@ -37,7 +39,6 @@ use std::fmt;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Cryptographic hash type
 pub type Hash256 = [u8; 32];
@@ -60,19 +61,17 @@ pub struct InputEnvelope {
 }
 
 impl InputEnvelope {
-    pub fn new(
+    /// Create InputEnvelope with a deterministic, caller-provided timestamp.
+    /// REQUIRED for replay equivalence: do not call SystemTime::now() internally.
+    pub fn new_with_canonical_time(
         actor_id: ActorId,
         role: ActorRole,
         origin_language: OriginLanguage,
         raw_input_bytes: Vec<u8>,
         signature: Option<Signature>,
         trace_parent: TraceId,
+        canonical_timestamp: u64,
     ) -> Self {
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as u64;
-
         let raw_input_hash = Sha256::digest(&raw_input_bytes).into();
 
         Self {
@@ -82,11 +81,12 @@ impl InputEnvelope {
             raw_input_bytes,
             raw_input_hash,
             normalized_ir_hash: None,
-            timestamp,
+            timestamp: canonical_timestamp,
             signature,
             trace_parent,
         }
     }
+
 
     /// Set the normalized IR hash after IR conversion
     pub fn set_ir_hash(&mut self, ir_hash: Hash256) {
@@ -373,10 +373,7 @@ pub fn append_critical_fault_event<P: AsRef<Path>>(
             )
         })?;
 
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis();
+    let timestamp = DetTime::canonical_now_ms().as_millis();
 
     writeln!(file, "[{}] CRITICAL FAULT: {}", timestamp, details).map_err(|e| {
         SystemHalt::with_formatted(

@@ -17,8 +17,8 @@
 
 #![deny(unsafe_code)]
 
+use crate::deterministic_core::DetTime;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::failure_axis::{FailureAxis, SystemHalt};
 
@@ -56,8 +56,5 @@ impl PtpClock {
 }
 
 fn wall_clock_micros() -> Result<u64, SystemHalt> {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_micros() as u64)
-        .map_err(|_e| SystemHalt::new(FailureAxis::TimingDriftFailure, "Clock read failed"))
+    Ok(DetTime::canonical_now_ms().as_millis() as u64)
 }

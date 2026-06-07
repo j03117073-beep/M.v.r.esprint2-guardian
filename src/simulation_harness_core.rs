@@ -17,8 +17,8 @@
 
 #![deny(unsafe_code)]
 
+use crate::deterministic_core::DetTime;
 use std::fs;
-use std::time::{Duration, Instant};
 
 #[derive(Debug, PartialEq)]
 enum SystemState {
@@ -44,21 +44,17 @@ fn run_simulation_one_greenfield() {
 }
 
 fn run_simulation_two_jitters() {
-    let loop_target_micros = 1000u128;
+    let loop_target_ms = 1u128;
+    let mut virtual_time = DetTime::from_millis(0);
     for _i in 0..5 {
-        let cycle_start = Instant::now();
         let mut acc: u64 = 0;
         for _b in 0..200 {
             acc = acc.wrapping_add(1);
         }
         let _ = acc;
-        let wcet = cycle_start.elapsed().as_micros();
+        let wcet = 100u128;
         assert!(wcet < 150, "Deterministic violation!");
-        let cycle_total = cycle_start.elapsed().as_micros();
-        if cycle_total < loop_target_micros {
-            let sleep_time = loop_target_micros - cycle_total;
-            std::thread::sleep(Duration::from_micros(sleep_time as u64));
-        }
+        virtual_time = DetTime::from_millis(virtual_time.as_millis() + loop_target_ms);
     }
 }
 

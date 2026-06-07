@@ -23,12 +23,12 @@
 //! inside the sovereign kernel.
 
 use crate::universal_frontend::{IRModule, IRFunction, IRNode, Value, BinaryOperator, UnaryOperator};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
-/// Input for IR execution
+/// Input for IR execution - uses BTreeMap for deterministic iteration order
 #[derive(Debug, Clone)]
 pub struct IRInput {
-    pub args: HashMap<String, Value>,
+    pub args: BTreeMap<String, Value>,
 }
 
 /// Result of IR execution
@@ -38,15 +38,26 @@ pub struct IRResult {
     pub bus_messages: Vec<crate::sovereign_bus::SovereignMessage>,
 }
 
+/// Canonicalize IR module: sort all collections for deterministic output
+pub fn canonicalize_ir(mut ir_module: IRModule) -> IRModule {
+    // Sort functions by name for deterministic emission
+    ir_module.functions.sort_by(|a, b| a.name.cmp(&b.name));
+    // Sort constants by name for deterministic emission
+    ir_module.constants.sort_by(|a, b| a.0.cmp(&b.0));
+    ir_module
+}
+
 /// Generate deterministic Rust code from IR module
 pub fn generate_rust_code(ir_module: &IRModule) -> String {
+    // CRITICAL: canonicalize before code generation
+    let ir_module = canonicalize_ir(ir_module.clone());
     let mut code = String::new();
 
     // Add necessary imports
     code.push_str("#![deny(unsafe_code)]
 
 ");
-    code.push_str("use std::collections::HashMap;
+    code.push_str("use std::collections::BTreeMap;
 ");
     code.push_str("use crate::universal_frontend::{Value, IRInput, IRResult};
 ");
@@ -96,8 +107,8 @@ fn generate_function(func: &IRFunction) -> String {
     let mut code = format!("fn {}(input: &IRInput) -> IRResult {{
 ", func.name);
 
-    // Declare local variables
-    code.push_str("    let mut locals: HashMap<String, Value> = HashMap::new();
+    // Declare local variables using BTreeMap for deterministic ordering
+    code.push_str("    let mut locals: std::collections::BTreeMap<String, Value> = std::collections::BTreeMap::new();
 ");
 
     // Add input arguments to locals

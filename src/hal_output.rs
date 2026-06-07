@@ -17,9 +17,9 @@
 
 #![deny(unsafe_code)]
 
+use crate::deterministic_core::DetTime;
 use crate::failure_axis::SystemHalt;
 use std::path::PathBuf;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 const DEFAULT_PACKET_BYTES: usize = 32;
 
@@ -111,10 +111,7 @@ fn to_hex(bytes: &[u8]) -> String {
 
 #[allow(dead_code)]
 fn now_us() -> Result<u64, SystemHalt> {
-    Ok(SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_micros() as u64)
+    Ok(DetTime::canonical_now_ms().as_millis() as u64)
 }
 
 #[cfg(test)]

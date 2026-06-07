@@ -19,7 +19,7 @@
 
 use crate::failure_axis::{FailureAxis, SystemHalt};
 use crate::tlbss_types::SubstrateNode;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 /// Part 2: Logic Trace Proof
 /// Canonical deterministic reference for 100-tick compliance
@@ -225,7 +225,7 @@ pub struct ValidationResult {
 }
 
 pub fn validate_reg_up(state: OldState, proposal: OldProposal) -> ValidationResult {
-    let mut map: HashMap<String, OldResource> = HashMap::new();
+    let mut map: BTreeMap<String, OldResource> = BTreeMap::new();
     for resource in state.resources {
         map.insert(resource.id.clone(), resource);
     }
@@ -303,7 +303,7 @@ pub fn validate_reg_up(state: OldState, proposal: OldProposal) -> ValidationResu
 // DESK v2 — Co-Optimized Validation Function
 
 pub fn validate_cooptimized(
-    resources: &HashMap<String, Resource>,
+    resources: &BTreeMap<String, Resource>,
     awards: &[Award],
     delta_t_minutes: f64,
 ) -> Vec<ResourceResult> {
@@ -404,8 +404,8 @@ pub struct Dispatch {
 }
 
 pub fn solve_dispatch(
-    resources: &HashMap<String, Resource>,
-    costs: &HashMap<String, Cost>,
+    resources: &BTreeMap<String, Resource>,
+    costs: &BTreeMap<String, Cost>,
     demand: f64,
     reg_up_req: f64,
     reg_down_req: f64,
@@ -422,7 +422,7 @@ pub fn solve_dispatch(
     dispatch
 }
 
-fn initialize_zero(resources: &HashMap<String, Resource>) -> Vec<Dispatch> {
+fn initialize_zero(resources: &BTreeMap<String, Resource>) -> Vec<Dispatch> {
     resources.keys().map(|id| Dispatch {
         resource_id: id.clone(),
         energy: 0.0,
@@ -433,8 +433,8 @@ fn initialize_zero(resources: &HashMap<String, Resource>) -> Vec<Dispatch> {
 
 fn allocate_energy(
     dispatch: &mut Vec<Dispatch>,
-    resources: &HashMap<String, Resource>,
-    costs: &HashMap<String, Cost>,
+    resources: &BTreeMap<String, Resource>,
+    costs: &BTreeMap<String, Cost>,
     demand: f64,
 ) {
     let mut remaining = demand;
@@ -465,8 +465,8 @@ fn allocate_energy(
 
 fn allocate_reg_up(
     dispatch: &mut Vec<Dispatch>,
-    resources: &HashMap<String, Resource>,
-    costs: &HashMap<String, Cost>,
+    resources: &BTreeMap<String, Resource>,
+    costs: &BTreeMap<String, Cost>,
     requirement: f64,
     delta_t: f64,
 ) {
@@ -504,8 +504,8 @@ fn allocate_reg_up(
 
 fn allocate_reg_down(
     dispatch: &mut Vec<Dispatch>,
-    resources: &HashMap<String, Resource>,
-    costs: &HashMap<String, Cost>,
+    resources: &BTreeMap<String, Resource>,
+    costs: &BTreeMap<String, Cost>,
     requirement: f64,
     delta_t: f64,
 ) {
@@ -543,7 +543,7 @@ fn allocate_reg_down(
 
 fn enforce_coupling(
     dispatch: &mut Vec<Dispatch>,
-    resources: &HashMap<String, Resource>,
+    resources: &BTreeMap<String, Resource>,
     delta_t: f64,
 ) {
     for d in dispatch.iter_mut() {

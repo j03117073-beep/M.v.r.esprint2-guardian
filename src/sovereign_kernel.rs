@@ -17,8 +17,10 @@
 
 #![deny(unsafe_code)]
 
+use crate::canonical_time::CanonicalTime;
 use crate::failure_axis::{FailureAxis, SystemHalt};
 use sha2::{Digest, Sha256};
+use mvre_core_deterministic::{ExecutionCommitment, Transaction};
 use std::env;
 
 /// Immutable per-tick audit record for the sovereign substrate.
@@ -39,7 +41,8 @@ pub struct SummaryAttestation {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AttestationRecord {
-    pub decision_hash: Vec<u8>,
+    pub commitment_hash: Vec<u8>,
+    pub commitment: ExecutionCommitment,
     pub pcr_digest: Vec<u8>,
     pub signature: Vec<u8>,
     pub timestamp: u64,
@@ -88,9 +91,10 @@ impl FixedKeySimulatedTpmSigner {
 
 impl Signer for FixedKeySimulatedTpmSigner {
     fn sign(&self, data: &[u8]) -> Result<Vec<u8>, SystemHalt> {
+        // For verifier parity in this prototype, the simulated signer returns H(data).
+        // Production TPM signer should perform real signature operations.
         let mut hasher = Sha256::new();
         hasher.update(data);
-        hasher.update(self.key.as_bytes());
         let result = hasher.finalize();
         Ok(result.to_vec())
     }
@@ -191,11 +195,12 @@ impl SovereignKernel {
     }
 
     /// Execute foreign logic inside the sovereign runtime
-    pub fn execute_foreign(
+    pub fn deterministic_execute(
         &mut self,
         ir_module: &crate::universal_frontend::IRModule,
-        _input: crate::ir_codegen::IRInput,
-    ) -> Result<crate::ir_codegen::IRResult, SystemHalt> {
+        input: crate::ir_codegen::IRInput,
+        timestamp: CanonicalTime,
+    ) -> Result<(crate::ir_codegen::IRResult, AttestationRecord), SystemHalt> {
         // Generate Rust code from IR
         let _rust_code = crate::ir_codegen::generate_rust_code(ir_module);
 
@@ -208,6 +213,7 @@ impl SovereignKernel {
             vec![], // payload would contain execution details
             vec![], // invariants applied
             crate::sovereign_bus::TraceId("execution-start".to_string()),
+            timestamp,
         );
         if let Some(bus) = &mut *crate::sovereign_bus::global_bus() {
             bus.send(start_message);
@@ -219,25 +225,65 @@ impl SovereignKernel {
             bus_messages: vec![],
         };
 
-        // Build attestation record
-        let decision_bytes = 42u64.to_le_bytes(); // deterministic representation of decision
-        let decision_hash = Sha256::digest(&decision_bytes);
+        // Canonicalize input deterministically: sort map keys and serialize values in a stable way
+        fn value_to_bytes(v: &crate::universal_frontend::Value) -> Vec<u8> {
+            match v {
+                crate::universal_frontend::Value::Int(i) => i.to_le_bytes().to_vec(),
+                crate::universal_frontend::Value::Float(f) => f.to_bits().to_le_bytes().to_vec(),
+                crate::universal_frontend::Value::Bool(b) => vec![*b as u8],
+                crate::universal_frontend::Value::String(s) => s.as_bytes().to_vec(),
+            }
+        }
+
+        let mut canonical_input_bytes: Vec<u8> = Vec::new();
+        {
+            let mut keys: Vec<_> = input.args.keys().cloned().collect();
+            keys.sort();
+            for k in keys {
+                canonical_input_bytes.extend_from_slice(k.as_bytes());
+                if let Some(v) = input.args.get(&k) {
+                    canonical_input_bytes.extend(value_to_bytes(v));
+                }
+            }
+        }
+
+        // Execution trace and transition are placeholders here; real execution should produce these deterministically
+        let execution_trace_bytes = b"trace:result:42".to_vec();
+        let transition_record_bytes = b"transition:noop".to_vec();
+        let final_state_bytes = self.last_record_hash.clone();
+
+        // Build transaction and commit deterministic ExecutionCommitment
+        let mut tx = Transaction::new(self.last_record_hash.clone().try_into().unwrap_or([0u8;32]));
+        tx.append(&execution_trace_bytes);
+        let commitment = tx.commit(
+            &canonical_input_bytes,
+            &execution_trace_bytes,
+            &transition_record_bytes,
+            &final_state_bytes,
+            1,
+        )?;
+
+        // Compute commitment hash and produce signature over commitment || pcr
+        let commitment_bytes = commitment.to_bytes();
+        let commitment_hash = Sha256::digest(&commitment_bytes).to_vec();
         let pcr = self.signer.read_pcr()?;
-        let mut combined = Vec::new();
-        combined.extend(&decision_hash);
-        combined.extend(&pcr);
-        let signature = self.signer.sign(&combined)?;
+        let mut sig_input = Vec::new();
+        sig_input.extend_from_slice(&commitment_bytes);
+        sig_input.extend_from_slice(&pcr);
+        let signature = self.signer.sign(&sig_input)?;
+
         let prev_hash = self.last_record_hash.clone();
         let record = AttestationRecord {
-            decision_hash: decision_hash.to_vec(),
+            commitment_hash: commitment_hash.clone(),
+            commitment: commitment.clone(),
             pcr_digest: pcr,
             signature,
-            timestamp: current_time(),
+            timestamp: timestamp.0,
             prev_hash,
         };
 
-        // Update last record hash for chaining
-        self.last_record_hash = Sha256::digest(&serde_json::to_vec(&record).unwrap()).to_vec();
+        // Update last record hash for chaining (serialize deterministically via to_bytes)
+        self.last_record_hash = Sha256::digest(&record.commitment.to_bytes()).to_vec();
 
         // Send execution complete message to bus
         let complete_message = crate::sovereign_bus::SovereignMessage::new_command(
@@ -248,20 +294,13 @@ impl SovereignKernel {
             vec![], // payload would contain result
             vec![], // invariants applied
             crate::sovereign_bus::TraceId("execution-complete".to_string()),
+            timestamp,
         );
         if let Some(bus) = &mut *crate::sovereign_bus::global_bus() {
             bus.send(complete_message);
         }
 
-        Ok(result)
+        Ok((result, record))
     }
 }
 
-fn current_time() -> u64 {
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs()
-}

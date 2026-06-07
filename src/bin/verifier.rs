@@ -42,13 +42,8 @@ fn verify_chain(records: &[AttestationRecord]) -> Result<(), String> {
         // 2. Verify hash linkage
         if i > 0 {
             let prev = &records[i - 1];
-
-            let mut input = Vec::new();
-            input.extend(&prev.signature);
-            input.extend(&record.decision_hash);
-
-            let expected = Sha256::digest(&input);
-
+            // Expect prev_hash to be the hash of the previous commitment bytes
+            let expected = Sha256::digest(&prev.commitment.to_bytes());
             if expected.to_vec() != record.prev_hash {
                 return Err(format!("Chain broken at index {}", i));
             }
@@ -70,7 +65,7 @@ fn verify_chain(records: &[AttestationRecord]) -> Result<(), String> {
 
 fn verify_signature(record: &AttestationRecord) -> Result<(), String> {
     let mut combined = Vec::new();
-    combined.extend(&record.decision_hash);
+    combined.extend(record.commitment.to_bytes());
     combined.extend(&record.pcr_digest);
 
     let expected = Sha256::digest(&combined);

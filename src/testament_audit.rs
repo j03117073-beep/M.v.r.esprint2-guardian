@@ -24,6 +24,105 @@
 
 use crate::failure_axis::{FailureAxis, SystemHalt};
 use crate::tlbss_types::SubstrateNode;
+use sha2::{Digest, Sha256};
+
+/// Canonical hash type for deterministic binding
+pub type DeterministicHash = [u8; 32];
+
+/// Canonical trace node representing a causal execution step
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TraceNode {
+    pub index: u64,
+    pub parent_hash: DeterministicHash,
+    pub instruction_hash: DeterministicHash,
+    pub state_diff_hash: DeterministicHash,
+    pub scheduler_decision_hash: DeterministicHash,
+}
+
+/// First-class execution trace: ordered, immutable, hash-linked
+#[derive(Debug, Clone)]
+pub struct ExecutionTrace {
+    pub nodes: Vec<TraceNode>,
+    pub root_hash: DeterministicHash,
+}
+
+impl ExecutionTrace {
+    /// Compute trace root hash from ordered trace nodes
+    pub fn compute_root(nodes: &[TraceNode]) -> DeterministicHash {
+        let mut hasher = Sha256::new();
+        for node in nodes {
+            hasher.update(node.index.to_le_bytes());
+            hasher.update(&node.parent_hash);
+            hasher.update(&node.instruction_hash);
+            hasher.update(&node.state_diff_hash);
+            hasher.update(&node.scheduler_decision_hash);
+        }
+        let mut out = [0u8; 32];
+        out.copy_from_slice(&hasher.finalize());
+        out
+    }
+
+    pub fn new(nodes: Vec<TraceNode>) -> Self {
+        let root_hash = Self::compute_root(&nodes);
+        Self { nodes, root_hash }
+    }
+}
+
+/// Cryptographic certificate binding input → execution path → state → output
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct DeterminismCertificate {
+    pub input_hash: DeterministicHash,
+    pub ir_hash: DeterministicHash,
+    pub execution_path_hash: DeterministicHash,
+    pub scheduler_decision_chain_hash: DeterministicHash,
+    pub trace_root_hash: DeterministicHash,
+    pub state_root_hash: DeterministicHash,
+    pub final_state_hash: DeterministicHash,
+    pub binary_hash: DeterministicHash,
+    pub environment_hash: DeterministicHash,
+}
+
+impl DeterminismCertificate {
+    /// Emit certificate: all hashes must be canonical and reproducible
+    pub fn commit(
+        input_hash: DeterministicHash,
+        ir_hash: DeterministicHash,
+        execution_path_hash: DeterministicHash,
+        scheduler_decision_chain_hash: DeterministicHash,
+        trace: &ExecutionTrace,
+        state_root_hash: DeterministicHash,
+        final_state_hash: DeterministicHash,
+        binary_hash: DeterministicHash,
+        environment_hash: DeterministicHash,
+    ) -> Self {
+        Self {
+            input_hash,
+            ir_hash,
+            execution_path_hash,
+            scheduler_decision_chain_hash,
+            trace_root_hash: trace.root_hash,
+            state_root_hash,
+            final_state_hash,
+            binary_hash,
+            environment_hash,
+        }
+    }
+
+    /// Canonical byte representation for signing
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut out = Vec::with_capacity(32 * 9);
+        out.extend_from_slice(&self.input_hash);
+        out.extend_from_slice(&self.ir_hash);
+        out.extend_from_slice(&self.execution_path_hash);
+        out.extend_from_slice(&self.scheduler_decision_chain_hash);
+        out.extend_from_slice(&self.trace_root_hash);
+        out.extend_from_slice(&self.state_root_hash);
+        out.extend_from_slice(&self.final_state_hash);
+        out.extend_from_slice(&self.binary_hash);
+        out.extend_from_slice(&self.environment_hash);
+        out
+    }
+}
 
 /// Passive audit structure used by the adversarial harness and, eventually, the
 /// hardened runtime guardian.  The values here are the same constants used in

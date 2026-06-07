@@ -22,6 +22,7 @@
 //! Ensures all inputs are cryptographically bound into SovereignTrace
 //! before normalization, execution, or translation.
 
+use crate::canonical_time::CanonicalTime;
 use crate::failure_axis::SystemHalt;
 use crate::sovereign_bus::{SovereignMessage, ActorId, ActorRole, OriginLanguage, TraceId};
 use crate::sovereign_trace::{InputEnvelope, Hash256, SovereignTraceLog};
@@ -51,14 +52,15 @@ impl CryptoPipeline {
         signature: Option<Vec<u8>>,
         trace_parent: TraceId,
     ) -> Result<String, SystemHalt> {
-        // 1. Create input envelope
-        let mut envelope = InputEnvelope::new(
+        // 1. Create input envelope with canonical time
+        let mut envelope = InputEnvelope::new_with_canonical_time(
             actor_id.clone(),
             role,
             origin_language.clone(),
             raw_input,
             signature,
             trace_parent,
+            CanonicalTime::from_millis(0).0,
         );
 
         // 2. Verify signature
@@ -91,7 +93,7 @@ impl CryptoPipeline {
         self.trace_log.append_rust_generated(ir_hash_str.clone(), rust_hash.clone());
 
         // 9. Execute (placeholder)
-        let input = IRInput { args: std::collections::HashMap::new() };
+        let input = IRInput { args: std::collections::BTreeMap::new() };
         let result = self.execute_rust(&rust_code, input)?;
         let result_hash = self.hash_result(&result);
 

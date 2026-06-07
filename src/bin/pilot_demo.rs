@@ -14,6 +14,7 @@
 // This software contains proprietary trade secrets and confidential
 // intellectual property. Unauthorized use is strictly prohibited.
 
+use m_v_r_esprint1::canonical_time::CanonicalTime;
 use m_v_r_esprint1::sovereign_kernel::{signer_from_env, AttestationRecord, SovereignKernel, SovereignKernelConfig};
 use m_v_r_esprint1::universal_frontend::IRModule;
 use m_v_r_esprint1::ir_codegen::IRInput;
@@ -41,31 +42,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             constants: Vec::new(),
         };
         let input = IRInput {
-            args: std::collections::HashMap::new(),
+            args: std::collections::BTreeMap::new(),
         };
 
         // Execute and capture record (in real impl, extract from kernel)
-        let _result = kernel.execute_foreign(&ir_module, input)
+        let timestamp = CanonicalTime::from_millis(0);
+        let (result, record) = kernel.deterministic_execute(&ir_module, input, timestamp)
             .map_err(|e| format!("{:?}", e))?;
 
-        // For demo, create a sample record (in practice, kernel would expose records)
-        let record = AttestationRecord {
-            decision_hash: vec![i as u8; 32],
-            pcr_digest: vec![0; 32],
-            signature: vec![i as u8 + 1; 32],
-            timestamp: 1710000000 + i,
-            prev_hash: if i == 0 { vec![0; 32] } else { vec![(i - 1) as u8; 32] },
-        };
+        // Capture returned attestation record from kernel
         records.push(record);
     }
 
     // Save to file
     let mut file = File::create("pilot_attestation_log.json")
         .map_err(|e| format!("{:?}", e))?;
-    for record in &records {
-        writeln!(file, "{}", serde_json::to_string(record)
-            .map_err(|e| format!("{:?}", e))?)?;
-    }
+    // Write full JSON array of records deterministically
+    let output = serde_json::to_string(&records).map_err(|e| format!("{:?}", e))?;
+    writeln!(file, "{}", output).map_err(|e| format!("{:?}", e))?;
 
     println!("Generated pilot attestation log with {} records", records.len());
 

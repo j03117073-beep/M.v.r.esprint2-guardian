@@ -17,10 +17,10 @@
 
 #![deny(unsafe_code)]
 
+use crate::deterministic_core::DetTime;
 use crate::failure_axis::SystemHalt;
 use crate::interface_discovery::{DiscoveredEndpoint, ProtocolKind};
 use sha2::{Digest, Sha256};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TransactionDirection {
@@ -163,10 +163,7 @@ impl ProtocolTraceSigner {
         let sig = sha256_hex(&[&hash.as_bytes(), device_id.as_bytes()].concat());
 
         ProtocolTransactionTrace {
-            timestamp_us: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_micros() as u64,
+            timestamp_us: DetTime::canonical_now_ms().as_millis() as u64,
             device_id,
             protocol,
             direction,

@@ -20,9 +20,24 @@
 //! IR Backends — Output Re-emission Layer
 //!
 //! Converts Rust execution results back into the caller's language.
+//! Enforces deterministic execution constraints via the DeterministicExecutable trait.
 
 use crate::universal_frontend::{IRModule, Value};
 use crate::ir_codegen::IRResult;
+use crate::testament_audit::{ExecutionTrace, TraceEvent};
+use crate::deterministic_core::{DetScheduler, DetTask};
+
+// Use `DetScheduler` and `DetTask` from `deterministic_core` to centralize
+// scheduler semantics and avoid ad-hoc map replacements across the codebase.
+
+/// Trait for deterministic execution: all implementers must be tick-based, order-preserving
+pub trait DeterministicExecutable {
+    /// Execute deterministically: no implicit parallelism, no async scheduling
+    fn execute_deterministic(
+        &self,
+        scheduler: &mut DetScheduler,
+    ) -> Result<(IRResult, ExecutionTrace), String>;
+}
 
 /// Trait for language backends
 pub trait LanguageBackend {

@@ -23,9 +23,9 @@
 //! humans, AIs, field devices, market interfaces, and kernel subsystems.
 
 use crate::audit_guardian::InvariantId;
+use crate::canonical_time::CanonicalTime;
 use crate::regulatory_policy::Intent;
 use sha2::{Digest, Sha256};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Unique identifier for actors
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -82,12 +82,8 @@ impl SovereignMessage {
         payload: Vec<u8>,
         invariants_applied: Vec<InvariantId>,
         trace_parent: TraceId,
+        timestamp: CanonicalTime,
     ) -> Self {
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as u64;
-
         SovereignMessage::Command {
             actor_id,
             role,
@@ -95,7 +91,7 @@ impl SovereignMessage {
             intent,
             payload,
             invariants_applied,
-            timestamp,
+            timestamp: timestamp.0,
             trace_parent,
         }
     }

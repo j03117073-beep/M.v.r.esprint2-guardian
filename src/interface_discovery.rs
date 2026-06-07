@@ -17,9 +17,9 @@
 
 #![deny(unsafe_code)]
 
+use crate::deterministic_core::DetTime;
 use crate::failure_axis::SystemHalt;
 use std::collections::BTreeSet;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InterfaceCategory {
@@ -99,10 +99,7 @@ pub fn discover_and_map(config: &DiscoveryConfig) -> Result<DiscoveryReport, Sys
     Ok(DiscoveryReport {
         endpoints,
         proposals,
-        timestamp_ms: SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as u64,
+        timestamp_ms: DetTime::canonical_now_ms().as_millis() as u64,
     })
 }
 

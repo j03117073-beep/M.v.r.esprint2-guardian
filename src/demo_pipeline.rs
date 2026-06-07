@@ -12,8 +12,6 @@ use crate::{
     testament_audit::TestamentAudit,
     tlbss_types::SubstrateNode,
 };
-use std::time::Instant;
-
 /// L7 Event Types - Map to regulatory emergency actions
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EventType {
@@ -208,9 +206,8 @@ pub fn run_clean_execution() -> (Vec<SubstrateNode>, Option<SystemHalt>) {
 
 /// MAIN DEMO PIPELINE - Shows complete system behavior
 pub fn run_full_demo(snapshot: MarketSnapshot) -> DemoResult {
-    let start = Instant::now();
-
-    // Step 1: Replay - Convert market conditions to trajectory
+    // Deterministic pipelines do not capture wall-clock runtime latency.
+    // This function now computes result state only.
     let traj = propose_trajectory_from_snapshot(&snapshot);
 
     // Step 2: Constraint Evaluation
@@ -237,7 +234,9 @@ pub fn run_full_demo(snapshot: MarketSnapshot) -> DemoResult {
     let audit = TestamentAudit::new();
     let audit_halt = audit.evaluate(&trace);
 
-    let execution_time_ms = start.elapsed().as_nanos() as f64 / 1_000_000.0;
+    // Deterministic pipelines do not depend on wall-clock runtime metrics.
+    // Report controlled instrumentation as a zeroed value for replay mode.
+    let execution_time_ms = 0.0;
 
     DemoResult {
         admissible,

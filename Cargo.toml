@@ -31,6 +31,10 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 axum = "0.7"
 tokio = { version = "1", features = ["full"] }
+fxhash = "0.2"
+
+# Local deterministic core crate
+mvre_core_deterministic = { path = "mvre_core_deterministic" }
 
 [features]
 default = []
