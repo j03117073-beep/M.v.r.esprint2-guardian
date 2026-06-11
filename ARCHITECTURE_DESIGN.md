@@ -43,6 +43,7 @@ Scenario Manifest
   -> unified state construction
   -> deterministic kernel execution
   -> attestation and audit export
+  -> appendices and canonical references (see docs/APPENDIX_A.md)
 ```
 
 Implementation:
