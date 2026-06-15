@@ -62,7 +62,7 @@ pub struct InputEnvelope {
 
 impl InputEnvelope {
     /// Create InputEnvelope with a deterministic, caller-provided timestamp.
-    /// REQUIRED for replay equivalence: do not call SystemTime::now() internally.
+    /// REQUIRED for replay equivalence: do not call direct wall-clock APIs internally.
     pub fn new_with_canonical_time(
         actor_id: ActorId,
         role: ActorRole,
