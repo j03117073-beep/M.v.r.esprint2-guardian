@@ -18,7 +18,7 @@
 #![deny(unsafe_code)]
 
 use crate::deterministic_core::DetTime;
-use crate::failure_axis::SystemHalt;
+use crate::failure_axis::{FailureAxis, SystemHalt};
 use crate::interface_discovery::{DiscoveredEndpoint, ProtocolKind};
 use sha2::{Digest, Sha256};
 
@@ -130,6 +130,31 @@ impl ProtocolDriver for IccpTase2Driver {
             protocol: ProtocolKind::ICCP_TASE2,
             summary: format!("ICCP-TASE2 message: {} bytes", payload.len()),
         })
+    }
+}
+
+pub fn protocol_kind_by_port(port: u16) -> Option<ProtocolKind> {
+    match port {
+        20000 => Some(ProtocolKind::DNP3),
+        502 => Some(ProtocolKind::Modbus),
+        50000 => Some(ProtocolKind::IEC61850),
+        4712 => Some(ProtocolKind::C37p118),
+        102 => Some(ProtocolKind::ICCP_TASE2),
+        _ => None,
+    }
+}
+
+pub fn parse_payload_by_port(port: u16, payload: &[u8]) -> Result<ParsedTelemetry, SystemHalt> {
+    match port {
+        20000 => Dnp3Driver.parse_telemetry(payload),
+        502 => ModbusDriver.parse_telemetry(payload),
+        50000 => Iec61850Driver.parse_telemetry(payload),
+        4712 => C37p118Driver.parse_telemetry(payload),
+        102 => IccpTase2Driver.parse_telemetry(payload),
+        _ => Err(SystemHalt::with_formatted(
+            FailureAxis::ExternalInjectionDetected,
+            &format!("Unsupported protocol port: {}", port),
+        )),
     }
 }
 

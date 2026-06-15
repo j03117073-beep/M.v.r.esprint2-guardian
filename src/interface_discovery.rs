@@ -20,6 +20,9 @@
 use crate::deterministic_core::DetTime;
 use crate::failure_axis::SystemHalt;
 use std::collections::BTreeSet;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+use std::path::Path;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InterfaceCategory {
@@ -103,21 +106,44 @@ pub fn discover_and_map(config: &DiscoveryConfig) -> Result<DiscoveryReport, Sys
     })
 }
 
-fn scan_network_interfaces(_include_loopback: bool) -> Result<Vec<DiscoveredEndpoint>, SystemHalt> {
+fn scan_network_interfaces(include_loopback: bool) -> Result<Vec<DiscoveredEndpoint>, SystemHalt> {
     let mut endpoints = Vec::new();
-    
-    // Hardcoded simulation endpoints
-    endpoints.push(DiscoveredEndpoint {
-        hostname: "eth0".to_string(),
-        port: 20000,
-        service: "dnp3".to_string(),
-    });
-    
-    endpoints.push(DiscoveredEndpoint {
-        hostname: "eth0".to_string(),
-        port: 502,
-        service: "modbus".to_string(),
-    });
+
+    let proc_net_path = Path::new("/proc/net/tcp");
+    if proc_net_path.exists() {
+        if let Ok(file) = File::open(proc_net_path) {
+            let reader = BufReader::new(file);
+            for line in reader.lines().skip(1) {
+                if let Ok(line) = line {
+                    if let Some(port) = parse_proc_net_port(&line) {
+                        if let Some(service) = protocol_name_for_port(port) {
+                            endpoints.push(DiscoveredEndpoint {
+                                hostname: "localhost".to_string(),
+                                port,
+                                service: service.to_string(),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if endpoints.is_empty() {
+        if !include_loopback {
+            return Ok(vec![]);
+        }
+        endpoints.push(DiscoveredEndpoint {
+            hostname: "127.0.0.1".to_string(),
+            port: 20000,
+            service: "dnp3".to_string(),
+        });
+        endpoints.push(DiscoveredEndpoint {
+            hostname: "127.0.0.1".to_string(),
+            port: 502,
+            service: "modbus".to_string(),
+        });
+    }
 
     Ok(endpoints)
 }
@@ -133,8 +159,31 @@ fn parse_open_ports() -> Result<BTreeSet<u16>, SystemHalt> {
 }
 
 #[allow(dead_code)]
-fn parse_proc_net_port(_line: &str) -> Option<u16> {
+fn parse_proc_net_port(line: &str) -> Option<u16> {
+    let fields: Vec<&str> = line.split_whitespace().collect();
+    if fields.len() < 2 {
+        return None;
+    }
+    let local_address = fields[1];
+    let parts: Vec<&str> = local_address.split(':').collect();
+    if parts.len() != 2 {
+        return None;
+    }
+    if let Ok(port_hex) = u16::from_str_radix(parts[1], 16) {
+        return Some(port_hex);
+    }
     None
+}
+
+fn protocol_name_for_port(port: u16) -> Option<&'static str> {
+    match port {
+        20000 => Some("dnp3"),
+        502 => Some("modbus"),
+        50000 => Some("iec61850"),
+        102 => Some("iccp_tase2"),
+        4712 => Some("c37.118"),
+        _ => None,
+    }
 }
 
 #[allow(dead_code)]
