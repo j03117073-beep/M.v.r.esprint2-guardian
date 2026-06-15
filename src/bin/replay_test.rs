@@ -3,16 +3,19 @@
 //
 // This file is part of the M.V.R.ESPRINT1 Sovereign Execution System.
 //
-// Replay Equivalence Test Harness
+// Replay Equivalence Test Harness — Phase B Certification
 //
 // This binary enforces Level-3 determinism: any two identical inputs
-// must produce byte-identical execution traces, state roots, and output hashes.
+// to the real kernel must produce byte-identical execution commitments
+// and attestation records.
 //
 // Used as a CI gate to prevent non-deterministic regressions.
 
-use m_v_r_esprint1::testament_audit::{ExecutionTrace, TraceEvent, DeterminismCertificate};
-use m_v_r_esprint1::universal_frontend::IRModule;
-use m_v_r_esprint1::ir_codegen::{IRInput, canonicalize_ir};
+use m_v_r_esprint1::testament_audit::DeterminismCertificate;
+use m_v_r_esprint1::sovereign_kernel::{AnyTpmSigner, FixedKeySimulatedTpmSigner, SovereignKernel, SovereignKernelConfig, AttestationRecord};
+use m_v_r_esprint1::universal_frontend::{IRModule, Value};
+use m_v_r_esprint1::ir_codegen::IRInput;
+use m_v_r_esprint1::canonical_time::CanonicalTime;
 use std::collections::BTreeMap;
 use sha2::{Digest, Sha256};
 
@@ -23,88 +26,80 @@ struct CanonicalInput {
     args: BTreeMap<String, String>,
 }
 
-/// Result of a single deterministic run
+/// Result of a single deterministic kernel run
 #[derive(Clone, Debug)]
-struct DeterministicRun {
+struct KernelRun {
     input_hash: [u8; 32],
     ir_hash: [u8; 32],
-    trace: ExecutionTrace,
-    state_root: [u8; 32],
-    certificate: DeterminismCertificate,
+    attestation_record: AttestationRecord,
+    commitment_bytes: Vec<u8>,
 }
 
-/// Execute once and produce a deterministic run record
-fn execute_once(input: &CanonicalInput) -> DeterministicRun {
-    // Hash canonical input
-    let input_bytes = serde_json::to_vec(&input.args).expect("serialize args");
+/// Execute kernel once with canonical input
+fn kernel_execute_once(input: &CanonicalInput, canonical_timestamp: u64) -> Result<KernelRun, String> {
+    // Hash canonical input deterministically
+    let input_bytes = serde_json::to_vec(&input.args).map_err(|e| format!("Serialize input error: {}", e))?;
     let input_hash = {
         let mut h = [0u8; 32];
         h.copy_from_slice(&Sha256::digest(&input_bytes));
         h
     };
 
-    // Canonicalize IR and compute hash
-    let canonical_ir = canonicalize_ir(input.ir_module.clone());
-    let ir_bytes = serde_json::to_vec(&canonical_ir).expect("serialize IR");
+    // Hash IR module
+    let ir_bytes = serde_json::to_vec(&input.ir_module).map_err(|e| format!("Serialize IR error: {}", e))?;
     let ir_hash = {
         let mut h = [0u8; 32];
         h.copy_from_slice(&Sha256::digest(&ir_bytes));
         h
     };
 
-    // Build a minimal trace for demo (real impl would capture actual execution)
-    let trace = ExecutionTrace::new(vec![
-        TraceEvent {
-            index: 0,
-            opcode: "init".to_string(),
-            state_diff: vec![],
-        },
-    ]);
+    // Initialize signer (use simulated mode for determinism)
+    let signer = AnyTpmSigner::Simulated(FixedKeySimulatedTpmSigner::new());
 
-    // Compute state root (demo: hash of trace root)
-    let state_root = {
-        let mut h = [0u8; 32];
-        h.copy_from_slice(&Sha256::digest(&trace.root_hash));
-        h
+    // Create kernel instance
+    let mut kernel = SovereignKernel::new(signer, SovereignKernelConfig { max_ticks: 1000 });
+
+    // Prepare IR input
+    let mut ir_input = IRInput {
+        args: BTreeMap::new(),
     };
-
-    // Binary and environment hashes (demo: fixed values)
-    let binary_hash = [0u8; 32];
-    let environment_hash = [0u8; 32];
-
-    let certificate = DeterminismCertificate::commit(
-        input_hash,
-        ir_hash,
-        &trace,
-        state_root,
-        binary_hash,
-        environment_hash,
-    );
-
-    DeterministicRun {
-        input_hash,
-        ir_hash,
-        trace,
-        state_root,
-        certificate,
+    for (k, v) in &input.args {
+        ir_input.args.insert(k.clone(), Value::String(v.clone()));
     }
+
+    // Execute deterministically with canonical timestamp
+    let canonical_time = CanonicalTime::from_millis(canonical_timestamp);
+    let (_result, attestation) = kernel.deterministic_execute(&input.ir_module, ir_input, canonical_time)
+        .map_err(|halt| format!("Kernel execution failed: {:?}", halt))?;
+
+    // Extract commitment bytes from attestation for byte-comparison
+    let commitment_bytes = attestation.commitment.to_bytes();
+
+    Ok(KernelRun {
+        input_hash,
+        ir_hash,
+        attestation_record: attestation,
+        commitment_bytes,
+    })
 }
 
-/// Strict replay equivalence test: run twice and compare byte-identically
-fn replay_equivalence_test(input: &CanonicalInput) -> Result<(), String> {
-    println!("🔄 Running replay equivalence test...");
+/// Strict replay equivalence test: execute kernel twice with identical input and compare
+fn replay_equivalence_test(input: &CanonicalInput, canonical_timestamp: u64) -> Result<(), String> {
+    println!("🔄 Running Phase B replay equivalence test...");
 
-    // First run
-    let run_a = execute_once(input);
-    println!("  ✓ Run A: input={:02x?}, ir={:02x?}", 
+    // First kernel execution
+    let run_a = kernel_execute_once(input, canonical_timestamp)?;
+    println!("  ✓ Run A: input_hash={:02x?}, ir_hash={:02x?}, commitment_len={}", 
              &run_a.input_hash[0..4], 
-             &run_a.ir_hash[0..4]);
+             &run_a.ir_hash[0..4],
+             run_a.commitment_bytes.len());
 
-    // Second run (identical input)
-    let run_b = execute_once(input);
-    println!("  ✓ Run B: input={:02x?}, ir={:02x?}",
+    // Second kernel execution (identical input)
+    let run_b = kernel_execute_once(input, canonical_timestamp)?;
+    println!("  ✓ Run B: input_hash={:02x?}, ir_hash={:02x?}, commitment_len={}", 
              &run_b.input_hash[0..4],
-             &run_b.ir_hash[0..4]);
+             &run_b.ir_hash[0..4],
+             run_b.commitment_bytes.len());
 
     // Compare: input hashes must be identical
     if run_a.input_hash != run_b.input_hash {
@@ -126,40 +121,33 @@ fn replay_equivalence_test(input: &CanonicalInput) -> Result<(), String> {
         );
     }
 
-    // Compare: trace root hashes must be identical
-    if run_a.trace.root_hash != run_b.trace.root_hash {
+    // Compare: commitment bytes (canonical execution proof) must be byte-identical
+    if run_a.commitment_bytes != run_b.commitment_bytes {
         return Err(
             format!(
-                "Trace root mismatch:\n  Run A: {:02x?}\n  Run B: {:02x?}",
-                run_a.trace.root_hash, run_b.trace.root_hash
+                "Commitment bytes mismatch:\n  Run A: {} bytes\n  Run B: {} bytes",
+                run_a.commitment_bytes.len(), run_b.commitment_bytes.len()
             )
         );
     }
 
-    // Compare: state roots must be identical
-    if run_a.state_root != run_b.state_root {
-        return Err(
-            format!(
-                "State root mismatch:\n  Run A: {:02x?}\n  Run B: {:02x?}",
-                run_a.state_root, run_b.state_root
-            )
-        );
+    // Compare: attestation records must be identical
+    if run_a.attestation_record != run_b.attestation_record {
+        return Err("Attestation record mismatch".to_string());
     }
 
-    // Compare: certificate bytes must be identical
-    if run_a.certificate.to_bytes() != run_b.certificate.to_bytes() {
-        return Err("Certificate mismatch".to_string());
-    }
-
-    println!("✅ Replay equivalence PASS: both runs produced identical certificates");
+    println!("✅ Replay equivalence PASS: both kernel runs produced identical commitments");
     Ok(())
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("MVRE Determinism Replay Test Suite");
-    println!("==================================\n");
+    println!("MVRE Phase B: Determinism Replay Equivalence Test Suite");
+    println!("======================================================\n");
 
-    // Test 1: Empty input
+    // Canonical timestamp for all runs (ensures time-independence)
+    let canonical_timestamp: u64 = 1000;
+
+    // Test 1: Empty IR module with empty input
     println!("Test 1: Empty IR module with empty input");
     let input_1 = CanonicalInput {
         ir_module: IRModule {
@@ -168,7 +156,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         args: BTreeMap::new(),
     };
-    replay_equivalence_test(&input_1)?;
+    replay_equivalence_test(&input_1, canonical_timestamp)?;
     println!();
 
     // Test 2: IR with constants
@@ -177,13 +165,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ir_module: IRModule {
             functions: Vec::new(),
             constants: vec![
-                ("CONST_A".to_string(), m_v_r_esprint1::universal_frontend::Value::Int(42)),
-                ("CONST_B".to_string(), m_v_r_esprint1::universal_frontend::Value::String("test".to_string())),
+                ("CONST_A".to_string(), Value::Int(42)),
+                ("CONST_B".to_string(), Value::String("test".to_string())),
             ],
         },
         args: BTreeMap::new(),
     };
-    replay_equivalence_test(&input_2)?;
+    replay_equivalence_test(&input_2, canonical_timestamp)?;
     println!();
 
     // Test 3: Input with multiple arguments (sorted for determinism)
@@ -199,12 +187,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         args: args_3,
     };
-    replay_equivalence_test(&input_3)?;
+    replay_equivalence_test(&input_3, canonical_timestamp)?;
     println!();
 
-    println!("✅ All replay equivalence tests passed!");
-    println!("\nLevel-3 Determinism Certification: PASS");
+    println!("✅ All Phase B replay equivalence tests passed!");
+    println!("\n🔬 Level-3 Determinism Certification: PASS");
     println!("The kernel demonstrates byte-identical execution under replay.");
+    println!("\nThis checkpoint qualifies for DHM-1 (Deterministic Hardening Milestone-1)");
 
     Ok(())
 }
