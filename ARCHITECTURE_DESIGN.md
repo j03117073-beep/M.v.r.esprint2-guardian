@@ -12,6 +12,18 @@ M.V.R.ESPRINT1 currently has three operationally coherent layers:
 
 The system is designed so that external inputs are normalized and validated before they reach kernel execution.
 
+## Target Operational Context
+
+This architecture is intentionally aligned to a statewide bulk-grid control-room environment similar to ERCOT, where the primary objective is to maintain whole-state frequency and energy balance across high-voltage transmission assets.
+
+Key distinctions from local utility control-room requirements:
+
+- ERCOT-style scope: statewide transmission monitoring, wholesale market inputs, frequency regulation, and bulk generation balancing.
+- Local utility scope: distribution feeder telemetry, neighborhood transformer health, local outage restoration, and customer-level service recovery.
+- For this project, the kernel is designed for deterministic, auditable execution of scenario-driven bulk-system decisions rather than local distribution troubleshooting or manual crew dispatch.
+
+This focus preserves the determinism model and audit boundary needed for Level-3 certification without conflating it with lower-voltage distribution control room behavior.
+
 ## Architecture in Practice
 
 ### SCED Verification Stack
