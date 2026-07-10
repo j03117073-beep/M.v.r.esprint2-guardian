@@ -50,6 +50,7 @@ pub mod simulation_harness_core;
 pub mod sovereign_kernel;
 pub mod sovereign_trace;
 pub mod tlbss_integrity_engine;
+pub mod tlbss_v2;
 pub mod visions_core;
 
 // Universal Execution + Audit Layer

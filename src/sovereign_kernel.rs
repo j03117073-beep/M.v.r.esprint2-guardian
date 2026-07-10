@@ -261,7 +261,7 @@ impl SovereignKernel {
             &transition_record_bytes,
             &final_state_bytes,
             1,
-        )?;
+        ).map_err(|e| SystemHalt::new(FailureAxis::InternalInvariantBreach, &format!("Commitment failed: {:?}", e)))?;
 
         // Compute commitment hash and produce signature over commitment || pcr
         let commitment_bytes = commitment.to_bytes();

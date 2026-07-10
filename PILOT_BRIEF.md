@@ -4,7 +4,7 @@ Updated to match the working repository state on 2026-03-27.
 
 ## Executive Summary
 
-M.V.R.ESPRINT1 currently demonstrates the strongest pilot value as a deterministic validation and evidence system for SCED-style scenarios, integration replay, and operator-readable audit output.
+M.V.R.ESPRINT1 currently demonstrates the strongest pilot value as an advisory-only deterministic validation and evidence system for SCED-style scenarios, integration replay, and operator-readable audit output.
 
 The repo can already show:
 
@@ -17,6 +17,12 @@ The repo can already show:
 - structured failure classification for invalid states
 
 This makes the project suitable today for evaluation as a correctness authority and integration-readiness harness rather than as a full live deployment stack.
+
+## Submission Framing
+
+The strongest honest pilot and submission narrative is that M.V.R.ESPRINT1 is an offline, read-only, deterministic replay and analytical platform intended to support post-event reconstruction, engineering review, and evidence-based analysis. It is not designed to participate in AGC, market clearing, real-time dispatch, or any other live control loop.
+
+That framing is important because it positions the project as a low-risk decision-support capability with clear auditability, reproducibility, and traceability rather than as a live operations system.
 
 ## Current Pilot Story
 

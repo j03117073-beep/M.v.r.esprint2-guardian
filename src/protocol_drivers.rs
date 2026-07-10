@@ -153,7 +153,7 @@ pub fn parse_payload_by_port(port: u16, payload: &[u8]) -> Result<ParsedTelemetr
         102 => IccpTase2Driver.parse_telemetry(payload),
         _ => Err(SystemHalt::with_formatted(
             FailureAxis::ExternalInjectionDetected,
-            &format!("Unsupported protocol port: {}", port),
+            format!("Unsupported protocol port: {}", port),
         )),
     }
 }

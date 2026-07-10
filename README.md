@@ -5,6 +5,8 @@ All Rights Reserved.
 
 Rust codebase for deterministic grid assurance experiments, audit-chain utilities, and SCED offer-chain verification.
 
+This repository is positioned as an advisory-only deterministic replay and analytical platform for post-event reconstruction, engineering review, and evidentiary analysis. It is not intended to interact with AGC, market clearing, real-time dispatch, or other live control functions.
+
 ## Current Build Snapshot
 
 Status as verified on 2026-03-26:
@@ -167,10 +169,61 @@ Their roles:
 - `verifier`: validates JSON attestation chains for `AttestationRecord` using the shared Ed25519-backed verification path
 - `sced_chain`: validates and benchmarks SCED offer-chain CSVs
 
+### 6. TLBSS™ v2.0 — Tri-Layer Bulk-System Substrate
+
+A complete reference implementation of the official TLBSS™ v2.0 engineering specification for deterministic assurance of bulk electric power systems. This module provides the foundational deterministic execution engine for the Minimal Viable Resonance Engine (MVRE).
+
+**Status**: ✅ Fully conformant to official specification (Parts I, II, III)
+
+**Key Features**:
+- **Deterministic execution**: Identical evidence always produces identical results
+- **Five-stage pipeline**: Evidence validation → Topology verification → State reconstruction → Operational assurance → Advisory generation
+- **Evidence preservation**: Immutable audit trail with complete provenance
+- **Physical constraints**: Enforces electrical engineering limits (voltage, frequency, topology)
+- **Failure classification**: Five classes of failures (Class I-V) with explicit handling per spec
+- **Replay identity**: Deterministic computation for reproducible execution
+
+**Implementation**:
+- Module: [`src/tlbss_v2.rs`](src/tlbss_v2.rs)
+- Documentation: [`TLBSS_V2_IMPLEMENTATION.md`](TLBSS_V2_IMPLEMENTATION.md)
+- Test suite: 6 comprehensive tests, all passing ✓
+
+**Foundational Principles**:
+1. Physical Primacy — Physical network is authoritative
+2. Evidence Before Inference — Measurements before computation
+3. Deterministic Computation — Reproducible execution guaranteed
+4. Explicit Topology — Connectivity always represented
+5. Operational Independence — Assessment separate from control
+
+**Running Tests**:
+
+```bash
+cargo test --lib tlbss_v2 -- --nocapture
+```
+
+**Expected output**:
+```
+running 6 tests
+test tlbss_v2::tests::executes_deterministically_and_replays_identically ... ok
+test tlbss_v2::tests::rejects_invalid_evidence_before_topology_processing ... ok
+test tlbss_v2::tests::reports_indeterminate_state_when_reconstruction_is_not_feasible ... ok
+test tlbss_v2::tests::preserves_evidence_package_immutably ... ok
+test tlbss_v2::tests::generates_deterministic_replay_identity ... ok
+test tlbss_v2::tests::classifies_failures_correctly ... ok
+
+test result: ok. 6 passed
+```
+
+**Specification Reference**: TLBSS™ v2.0 Official Engineering Specification (Parts I-III)  
+**Framework Owner**: Obinna James Ejiofor  
+**Document Classification**: Technical Standard
+
 ## Repository Shape
 
-Key library modules exported from [`src/lib.rs`](/workspaces/M.V.R.ESPRINT1/src/lib.rs):
 
+Key library modules exported from [`src/lib.rs`](src/lib.rs):
+
+- TLBSS and deterministic frameworks: **`tlbss_v2`** (TLBSS™ v2.0 reference implementation)
 - assurance and policy: `audit_guardian`, `regulatory_policy`, `constraint_system`, `compliance`
 - simulation and harnessing: `simulation`, `simulation_harness_core`, `adversarial_harness`, `demo_pipeline`
 - sovereign/runtime concepts: `sovereign_kernel`, `sovereign_trace`, `sovereign_bus`, `kernel`

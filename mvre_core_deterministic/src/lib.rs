@@ -5,6 +5,7 @@
 #![deny(unsafe_code)]
 
 use serde::{Deserialize, Serialize};
+use serde_json;
 use sha2::{Digest, Sha256};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
