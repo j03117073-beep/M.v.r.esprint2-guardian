@@ -1,0 +1,3 @@
+session VerifiedKernel = HOL +
+  theories
+    Kernel_Verification
